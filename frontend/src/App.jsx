@@ -72,6 +72,36 @@ const SPEC_PRESETS = {
   "Custom":                { targetLevel: 63, scaleOnly: "" },
 };
 
+// Helper function to format weights into a valid Pawn import string mapping short keys to Pawn fields
+function generatePawnString(specName, weights) {
+  const pawnStatMapping = {
+    Str:      "Strength",
+    Agi:      "Agility",
+    Int:      "Intellect",
+    Spi:      "Spirit",
+    Sta:      "Stamina",
+    AP:       "Ap",
+    SP:       "SpellPower",
+    Hit:      "HitRating",
+    Crit:     "CritRating",
+    Haste:    "HasteRating",
+    Exp:      "ExpertiseRating",
+    ArPen:    "ArmorPenetration",
+    Wdps:     "MeleeDps",
+    WOHdps:   "OffHandDps",
+    WOHspeed: "OffHandSpeed"
+  };
+
+  const parts = [];
+  Object.entries(weights).forEach(([stat, val]) => {
+    if (val === 0 || ["ub", "gm", "gb", "wt", "wtv"].includes(stat.toLowerCase())) return;
+    const pawnKey = pawnStatMapping[stat] || stat;
+    parts.push(`${pawnKey}=${val.toFixed(4)}`);
+  });
+
+  return `( Pawn: v1: "${specName} - SimC": ${parts.join(", ")} )`;
+}
+
 // ─── Components ──────────────────────────────────────────────────────────────
 
 function Spinner() {
@@ -87,7 +117,6 @@ function Spinner() {
 }
 
 function EPTable({ weights }) {
-  // FIXED: Added array safety check to drop out the broken backend Wowhead URL matches
   const entries = Object.entries(weights)
     .filter(([stat, v]) => v !== 0 && !["ub", "gm", "gb", "wt", "wtv"].includes(stat))
     .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a));
@@ -137,15 +166,22 @@ function EPTable({ weights }) {
 // ─── Main App ────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [profile,          setProfile]          = useState("");
-  const [spec,             setSpec]             = useState("Enhancement Shaman");
-  const [targetLvl,        setTargetLvl]        = useState(63);
-  const [iterations,       setIterations]       = useState(500);
+  const [profile,         setProfile]         = useState("");
+  const [spec,            setSpec]            = useState("Enhancement Shaman");
+  const [targetLvl,       setTargetLvl]       = useState(63);
+  const [iterations,      setIterations]      = useState(500);
   const [calculateWeights, setCalculateWeights] = useState(true);
-  const [result,           setResult]           = useState(null);
-  const [loading,          setLoading]          = useState(false);
-  const [error,            setError]            = useState(null);
-  const [showRaw,          setShowRaw]          = useState(false);
+  
+  // Extended configuration parameters
+  const [fightLength,     setFightLength]     = useState(300);
+  const [varyLength,      setVaryLength]      = useState(0);
+  const [fightStyle,      setFightStyle]      = useState("Patchwerk");
+  const [playerSkill,     setPlayerSkill]     = useState(100);
+
+  const [result,          setResult]          = useState(null);
+  const [loading,         setLoading]         = useState(false);
+  const [error,           setError]           = useState(null);
+  const [showRaw,         setShowRaw]         = useState(false);
 
   // State to track background cold-starts: "waking", "ready", or "failed"
   const [backendStatus, setBackendStatus] = useState("waking");
@@ -197,7 +233,11 @@ export default function App() {
             targetLevel: targetLvl, 
             iterations, 
             threads: 2,
-            scaleOnly: scalingParameter
+            scaleOnly: scalingParameter,
+            max_time: fightLength,
+            vary_combat_length: varyLength,
+            fight_style: fightStyle,
+            player_skill: playerSkill
           },
         }),
       });
@@ -210,7 +250,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [profile, targetLvl, iterations, spec, calculateWeights]);
+  }, [profile, targetLvl, iterations, spec, calculateWeights, fightLength, varyLength, fightStyle, playerSkill]);
 
   return (
     <div style={{ maxWidth: 700, margin: "40px auto", padding: "0 20px", fontFamily: "var(--sans)", color: "#fff" }}>
@@ -228,8 +268,9 @@ export default function App() {
         .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid var(--border); margin-top: 16px; }
         .btn-secondary:hover:not(:disabled) { background: #30363d; }
         .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-        .input-field { padding: 8px 12px; border-radius: 6px; background: #1c2128; border: 1px solid var(--border); color: #fff; font-size: 14px; }
-        .checkbox-container { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 14px; color: #fff; margin-top: 24px; }
+        .input-field { padding: 8px 12px; border-radius: 6px; background: #1c2128; border: 1px solid var(--border); color: #fff; font-size: 14px; box-sizing: border-box; }
+        .input-field:focus { outline: 1px solid var(--amber); border-color: var(--amber); }
+        .checkbox-container { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 14px; color: #fff; grid-column: span 3; margin-top: 8px; }
         .checkbox-container input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--amber); }
       `}</style>
 
@@ -301,8 +342,8 @@ export default function App() {
       </div>
 
       {/* --- 2. COMBAT VARIABLE ADJUSTMENTS --- */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-        <div className="form-group">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px 16px", marginBottom: 16 }}>
+        <div className="form-group" style={{ margin: 0 }}>
           <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Target Level</label>
           <input 
             type="number" 
@@ -311,12 +352,54 @@ export default function App() {
             className="input-field" 
           />
         </div>
-        <div className="form-group">
+        <div className="form-group" style={{ margin: 0 }}>
           <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Simulation Iterations</label>
           <input 
             type="number" 
             value={iterations} 
             onChange={(e) => setIterations(parseInt(e.target.value) || 100)} 
+            className="input-field" 
+          />
+        </div>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Fight Style</label>
+          <select 
+            value={fightStyle} 
+            onChange={(e) => setFightStyle(e.target.value)} 
+            className="input-field"
+            style={{ height: "38px" }}
+          >
+            <option value="Patchwerk">Patchwerk (Static)</option>
+            <option value="HelterSkelter">Helter Skelter</option>
+            <option value="Ultraxion">Ultraxion</option>
+          </select>
+        </div>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Fight Length (sec)</label>
+          <input 
+            type="number" 
+            value={fightLength} 
+            onChange={(e) => setFightLength(parseInt(e.target.value) || 300)} 
+            className="input-field" 
+          />
+        </div>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Length Variance (sec)</label>
+          <input 
+            type="number" 
+            value={varyLength} 
+            onChange={(e) => setVaryLength(parseInt(e.target.value) || 0)} 
+            className="input-field" 
+          />
+        </div>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Player Skill (%)</label>
+          <input 
+            type="number" 
+            min="1" 
+            max="100" 
+            value={playerSkill} 
+            onChange={(e) => setPlayerSkill(parseInt(e.target.value) || 100)} 
             className="input-field" 
           />
         </div>
@@ -380,6 +463,36 @@ export default function App() {
             <div style={{ marginTop: 20 }}>
               <h3 style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12, fontWeight: 600 }}>Stat Weights (EP Priorities)</h3>
               <EPTable weights={result.weights} />
+
+              {/* Pawn Import String Export Box */}
+              {Object.keys(result.weights).length > 0 && (
+                <div style={{ marginTop: 20 }}>
+                  <label htmlFor="pawn-string-output" style={{ display: "block", fontSize: 12, color: "var(--text-dim)", fontWeight: 500, marginBottom: 6 }}>
+                    Pawn Import String
+                  </label>
+                  <textarea
+                    id="pawn-string-output"
+                    readOnly
+                    value={generatePawnString(spec, result.weights)}
+                    onClick={(e) => e.target.select()}
+                    className="input-field"
+                    style={{
+                      width: "100%",
+                      height: "60px",
+                      fontSize: "12px",
+                      fontFamily: "var(--mono)",
+                      background: "#161b22",
+                      color: "var(--amber)",
+                      cursor: "pointer",
+                      resize: "none"
+                    }}
+                    placeholder="Pawn string will appear here..."
+                  />
+                  <span style={{ fontSize: 11, color: "var(--text-dim)", display: "block", marginTop: 6 }}>
+                    💡 Click inside the box to highlight and copy for your addon.
+                  </span>
+                </div>
+              )}
             </div>
           )}
           
