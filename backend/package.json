@@ -1,0 +1,14 @@
+{
+  "name": "simc-triumvirate-backend",
+  "version": "1.0.0",
+  "description": "SimulationCraft API backend for Triumvirate WoW",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
