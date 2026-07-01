@@ -136,14 +136,15 @@ function EPTable({ weights }) {
 // ─── Main App ────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [profile,    setProfile]    = useState("");
-  const [spec,       setSpec]       = useState("Enhancement Shaman");
-  const [targetLvl,  setTargetLvl]  = useState(63);
-  const [iterations, setIterations] = useState(500);
-  const [result,     setResult]     = useState(null);
-  const [loading,    setLoading]    = useState(false);
-  const [error,      setError]      = useState(null);
-  const [showRaw,    setShowRaw]    = useState(false);
+  const [profile,          setProfile]          = useState("");
+  const [spec,             setSpec]             = useState("Enhancement Shaman");
+  const [targetLvl,        setTargetLvl]        = useState(63);
+  const [iterations,       setIterations]       = useState(500);
+  const [calculateWeights, setCalculateWeights] = useState(true); // 1. Added checkbox toggle state
+  const [result,           setResult]           = useState(null);
+  const [loading,          setLoading]          = useState(false);
+  const [error,            setError]            = useState(null);
+  const [showRaw,          setShowRaw]          = useState(false);
 
   // State to track background cold-starts: "waking", "ready", or "failed"
   const [backendStatus, setBackendStatus] = useState("waking");
@@ -182,8 +183,10 @@ export default function App() {
     setError(null);
     setResult(null);
 
-    // Dynamic scaleOnly selection retrieval based on state configuration
     const activePreset = SPEC_PRESETS[spec];
+    
+    // 2. If checked, send spec rules. If unchecked, send "none" to completely stop core engine scaling calculations.
+    const scalingParameter = calculateWeights ? (activePreset ? activePreset.scaleOnly : "") : "none";
 
     try {
       const res = await fetch(`${API_URL}/api/simulate`, {
@@ -195,7 +198,7 @@ export default function App() {
             targetLevel: targetLvl, 
             iterations, 
             threads: 2,
-            scaleOnly: activePreset ? activePreset.scaleOnly : "" // FIXED: Passed configuration to payload matrix
+            scaleOnly: scalingParameter
           },
         }),
       });
@@ -208,7 +211,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [profile, targetLvl, iterations, spec]);
+  }, [profile, targetLvl, iterations, spec, calculateWeights]);
 
   return (
     <div style={{ maxWidth: 700, margin: "40px auto", padding: "0 20px", fontFamily: "var(--sans)", color: "#fff" }}>
@@ -227,11 +230,13 @@ export default function App() {
         .btn-secondary:hover:not(:disabled) { background: #30363d; }
         .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
         .input-field { padding: 8px 12px; border-radius: 6px; background: #1c2128; border: 1px solid var(--border); color: #fff; font-size: 14px; }
+        .checkbox-container { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 14px; color: #fff; margin-top: 24px; }
+        .checkbox-container input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--amber); }
       `}</style>
 
       {/* --- APP HEADER WITH RENDER COLD-START DETECTOR --- */}
       <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "var(--amber)" }}>SimC Triumvirate Matrix</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "var(--amber)" }}>SimC Triumvirate</h1>
         <div style={{ fontSize: 12, fontFamily: "var(--mono)", color: "var(--text-dim)" }}>
           Server: {backendStatus === "ready" ? "🟢 Ready" : backendStatus === "waking" ? "🟡 Waking Engine..." : "🔴 Disconnected"}
         </div>
@@ -297,7 +302,7 @@ export default function App() {
       </div>
 
       {/* --- 2. COMBAT VARIABLE ADJUSTMENTS --- */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
         <div className="form-group">
           <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Target Level</label>
           <input 
@@ -316,6 +321,16 @@ export default function App() {
             className="input-field" 
           />
         </div>
+        
+        {/* 3. Render the interactive checkbox toggle column */}
+        <label className="checkbox-container">
+          <input 
+            type="checkbox" 
+            checked={calculateWeights} 
+            onChange={(e) => setCalculateWeights(e.target.checked)} 
+          />
+          Calculate Stat Weights
+        </label>
       </div>
 
       {/* --- 3. PROFILE DATA INPUT --- */}
@@ -338,7 +353,7 @@ export default function App() {
           onClick={handleSimulate} 
           disabled={loading || backendStatus !== "ready"}
         >
-          Execute Simulation Matrix
+          Simulate
         </button>
         {loading && <Spinner />}
       </div>
@@ -363,7 +378,8 @@ export default function App() {
             {result.dps || "0"} <span style={{ fontSize: 14, color: "var(--text-dim)", fontWeight: 400 }}>Simulated DPS</span>
           </div>
           
-          {result.weights && (
+          {/* Only render weight priorities block if the user checked the checkbox and weights exist */}
+          {calculateWeights && result.weights && (
             <div style={{ marginTop: 20 }}>
               <h3 style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12, fontWeight: 600 }}>Stat Weights (EP Priorities)</h3>
               <EPTable weights={result.weights} />
