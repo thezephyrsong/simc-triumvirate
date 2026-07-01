@@ -87,8 +87,9 @@ function Spinner() {
 }
 
 function EPTable({ weights }) {
+  // FIXED: Added array safety check to drop out the broken backend Wowhead URL matches
   const entries = Object.entries(weights)
-    .filter(([, v]) => v !== 0)
+    .filter(([stat, v]) => v !== 0 && !["ub", "gm", "gb", "wt", "wtv"].includes(stat))
     .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a));
 
   if (entries.length === 0) {
@@ -140,7 +141,7 @@ export default function App() {
   const [spec,             setSpec]             = useState("Enhancement Shaman");
   const [targetLvl,        setTargetLvl]        = useState(63);
   const [iterations,       setIterations]       = useState(500);
-  const [calculateWeights, setCalculateWeights] = useState(true); // 1. Added checkbox toggle state
+  const [calculateWeights, setCalculateWeights] = useState(true);
   const [result,           setResult]           = useState(null);
   const [loading,          setLoading]          = useState(false);
   const [error,            setError]            = useState(null);
@@ -184,8 +185,6 @@ export default function App() {
     setResult(null);
 
     const activePreset = SPEC_PRESETS[spec];
-    
-    // 2. If checked, send spec rules. If unchecked, send "none" to completely stop core engine scaling calculations.
     const scalingParameter = calculateWeights ? (activePreset ? activePreset.scaleOnly : "") : "none";
 
     try {
@@ -236,7 +235,7 @@ export default function App() {
 
       {/* --- APP HEADER WITH RENDER COLD-START DETECTOR --- */}
       <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "var(--amber)" }}>SimC Triumvirate</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "var(--amber)" }}>SimC Triumvirate Matrix</h1>
         <div style={{ fontSize: 12, fontFamily: "var(--mono)", color: "var(--text-dim)" }}>
           Server: {backendStatus === "ready" ? "🟢 Ready" : backendStatus === "waking" ? "🟡 Waking Engine..." : "🔴 Disconnected"}
         </div>
@@ -322,7 +321,6 @@ export default function App() {
           />
         </div>
         
-        {/* 3. Render the interactive checkbox toggle column */}
         <label className="checkbox-container">
           <input 
             type="checkbox" 
@@ -353,7 +351,7 @@ export default function App() {
           onClick={handleSimulate} 
           disabled={loading || backendStatus !== "ready"}
         >
-          Simulate
+          Execute Simulation Matrix
         </button>
         {loading && <Spinner />}
       </div>
@@ -378,7 +376,6 @@ export default function App() {
             {result.dps || "0"} <span style={{ fontSize: 14, color: "var(--text-dim)", fontWeight: 400 }}>Simulated DPS</span>
           </div>
           
-          {/* Only render weight priorities block if the user checked the checkbox and weights exist */}
           {calculateWeights && result.weights && (
             <div style={{ marginTop: 20 }}>
               <h3 style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12, fontWeight: 600 }}>Stat Weights (EP Priorities)</h3>
