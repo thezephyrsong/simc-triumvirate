@@ -1966,7 +1966,7 @@ struct mutilate_t : public rogue_attack_t
     rogue_t* p = player -> cast_rogue();
     rogue_attack_t::player_buff();
     if ( sim -> target -> debuffs.poisoned ) player_multiplier *= 1.20;
-    p -> uptimes_poisoned -> update( sim -> target -> debuffs.poisoned != 0 );
+    p -> uptimes_poisoned -> update( sim -> target -> debuffs.poisoned -> check() > 0 );
     trigger_dirty_deeds( this );
   }
 
