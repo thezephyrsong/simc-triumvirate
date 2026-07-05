@@ -369,7 +369,6 @@ export default function App() {
       setError("Paste your TopFit export first.");
       return;
     }
-    loading = true; // wait sync updates
     setLoading(true);
     setError(null);
     setResult(null);
