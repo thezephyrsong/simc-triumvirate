@@ -1227,7 +1227,7 @@ struct backstab_t : public rogue_attack_t
 
     if ( p -> set_bonus.tier9_4pc_melee() ) base_crit += .05;
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.08  // Triumvirate: 8/16/24/32/40%;
   }
 
   virtual void player_buff()
@@ -1292,7 +1292,7 @@ struct envenom_t : public rogue_attack_t
       rogue_attack_t( "envenom", player, SCHOOL_NATURE, TREE_ASSASSINATION ), min_doses( 1 ), no_buff( 0 )
   {
     rogue_t* p = player -> cast_rogue();
-    assert( p -> level >= 62 );
+    assert( p -> level >= 50  // Triumvirate: Envenom Rank 1 = 50 );
 
     option_t options[] =
     {
@@ -1646,7 +1646,7 @@ struct ghostly_strike_t : public rogue_attack_t
     base_multiplier            *= 1.0 + ( p -> talents.find_weakness * 0.02 +
                                           p -> talents.slaughter_from_the_shadows * 0.01 );
     base_crit                  += p -> talents.turn_the_tables * 0.02;
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.08  // Triumvirate: 8/16/24/32/40%;
 
     id = 14278;
   }
@@ -1691,7 +1691,7 @@ struct hemorrhage_t : public rogue_attack_t
                                p -> set_bonus.tier6_4pc_melee() * 0.06 +
                                p -> talents.slaughter_from_the_shadows * 0.01 );
     base_crit += p -> talents.turn_the_tables * 0.02;
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.08  // Triumvirate: 8/16/24/32/40%;
 
     damage_adder = util_t::ability_rank( p -> level,  75.0,80,  42.0,70,  29.0,0 );
 
@@ -1942,7 +1942,7 @@ struct mutilate_t : public rogue_attack_t
 
     if ( p -> set_bonus.tier9_4pc_melee() ) base_crit += .05;
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.08  // Triumvirate: 8/16/24/32/40%;
 
     if ( p -> glyphs.mutilate ) base_cost -= 5;
   }
@@ -2154,7 +2154,7 @@ struct shiv_t : public rogue_attack_t
                                p -> talents.surprise_attacks * 0.10 +
                                p -> talents.slaughter_from_the_shadows * 0.01 );
     base_crit += p -> talents.turn_the_tables * 0.02;
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.08  // Triumvirate: 8/16/24/32/40%;
 
     may_crit = false;
 
@@ -2217,7 +2217,7 @@ struct sinister_strike_t : public rogue_attack_t
                                p -> talents.slaughter_from_the_shadows * 0.01 );
 
     base_crit += p -> talents.turn_the_tables * 0.02;
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.lethality * 0.08  // Triumvirate: 8/16/24/32/40%;
 
     if ( p -> set_bonus.tier9_4pc_melee() ) base_crit += .05;
   }

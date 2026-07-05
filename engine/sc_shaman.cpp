@@ -234,8 +234,8 @@ struct shaman_attack_t : public attack_t
   {
     base_dd_min = base_dd_max = 1;
     shaman_t* p = player -> cast_shaman();
-    base_multiplier *= 1.0 + p -> talents.weapon_mastery * 0.1/3;
-    if ( p -> dual_wield() ) base_hit += p -> talents.dual_wield_specialization * 0.02;
+    base_multiplier *= 1.0 + p -> talents.weapon_mastery * 0.05;  // Triumvirate: 5/10/15% (was 3.33/6.67/10%)
+    if ( p -> dual_wield() ) base_hit += p -> talents.dual_wield_specialization * 0.03;  // Triumvirate: 3/6/9% (was 2/4/6%)
   }
 
   virtual void execute();
@@ -254,7 +254,8 @@ struct shaman_spell_t : public spell_t
   shaman_spell_t( const char* n, player_t* p, int s, int t ) :
       spell_t( n, p, RESOURCE_MANA, s, t ), base_cost_reduction( 0 )
   {
-
+    shaman_t* o = p -> cast_shaman();
+    if ( o -> dual_wield() ) base_hit += o -> talents.dual_wield_specialization * 0.03;  // Triumvirate: NEW - spell hit while dual wielding
   }
 
   virtual double cost() SC_CONST;
@@ -533,7 +534,7 @@ static void trigger_windfury_weapon( attack_t* a )
       may_crit    = true;
       background  = true;
       trigger_gcd = 0;
-      base_multiplier *= 1.0 + p -> talents.elemental_weapons * 0.133333;
+      base_multiplier *= 1.0 + p -> talents.elemental_weapons * 0.166667;  // Triumvirate: 17/33/50% (was 13/27/40%)
       if ( p -> totems.splintering ) base_attack_power += 212;
       reset();
     }
@@ -595,7 +596,7 @@ static void trigger_improved_stormstrike( attack_t* a )
 
   if ( p -> rng_improved_stormstrike -> roll( p -> talents.improved_stormstrike / 2.0 ) )
   {
-    p -> resource_gain( RESOURCE_MANA, 0.20 * p -> resource_base[ RESOURCE_MANA ], p -> gains_improved_stormstrike );
+    p -> resource_gain( RESOURCE_MANA, 0.40 * p -> resource_base[ RESOURCE_MANA ], p -> gains_improved_stormstrike );  // Triumvirate: 40% (was 20%)
   }
 }
 
@@ -647,7 +648,8 @@ static void trigger_tier8_4pc_elemental( spell_t* s )
 
 static void trigger_lightning_overload( spell_t* s,
                                         stats_t* lightning_overload_stats,
-                                        double   lightning_overload_chance )
+                                        double   lightning_overload_chance,
+                                        double   shamanism_power_mod = 0.05 )
 {
   shaman_t* p = s -> player -> cast_shaman();
 
@@ -668,7 +670,7 @@ static void trigger_lightning_overload( spell_t* s,
     s -> pseudo_pet           = true; // Prevent Honor Among Thieves
     s -> base_cost            = 0;
     s -> base_multiplier     /= 2.0;
-    s -> direct_power_mod    += p -> talents.shamanism * 0.04; // Reapplied here because Shamanism isn't affected by the *0.5.
+    s -> direct_power_mod    += p -> talents.shamanism * shamanism_power_mod; // Reapplied here because Shamanism isn't affected by the *0.5.
     s -> stats                = lightning_overload_stats;
 
     s -> time_to_execute      = 0;
@@ -703,7 +705,7 @@ void shaman_attack_t::execute()
     }
     if ( p -> buffs_shamanistic_rage -> up() )
     {
-      double mana = player_attack_power * 0.15;
+      double mana = player_attack_power * 0.20;  // Triumvirate: 20% (was 15%)
       p -> resource_gain( RESOURCE_MANA, mana, p -> gains_shamanistic_rage );
     }
     trigger_flametongue_weapon( this );
@@ -924,6 +926,35 @@ struct lava_lash_t : public shaman_attack_t
 };
 
 // Stormstrike Attack =======================================================
+
+// primal_strike_t ==========================================================
+// Triumvirate: new baseline ability learned at level 1.
+// Instant physical weapon strike for 75% weapon damage, 8s cooldown.
+// Bypasses all target armor mitigation.
+
+struct primal_strike_t : public shaman_attack_t
+{
+  primal_strike_t( player_t* player, const std::string& options_str ) :
+      shaman_attack_t( "primal_strike", player, SCHOOL_PHYSICAL, TREE_ENHANCEMENT )
+  {
+    may_crit             = true;
+    base_cost            = 0;
+    cooldown -> duration = 8.0;
+    base_multiplier     *= 0.75;
+  }
+
+  virtual double armor() SC_CONST
+  {
+    return 0;  // Ignores all armor mitigation per Triumvirate spec
+  }
+
+  virtual void execute()
+  {
+    shaman_t* p = player -> cast_shaman();
+    weapon = &( p -> main_hand_weapon );
+    shaman_attack_t::execute();
+  }
+};
 
 struct stormstrike_t : public shaman_attack_t
 {
@@ -1149,15 +1180,15 @@ struct chain_lightning_t : public shaman_spell_t
     base_execute_time    = 2.0;
     may_crit             = true;
     direct_power_mod     = ( base_execute_time / 3.5 );
-    direct_power_mod    += p -> talents.shamanism * 0.04;
+    direct_power_mod    += p -> talents.shamanism * 0.05;
     base_execute_time   -= p -> talents.lightning_mastery * 0.1;
     base_cost_reduction += p -> talents.convection * 0.02;
-    base_multiplier     *= 1.0 + p -> talents.concussion * 0.01;
+    base_multiplier     *= 1.0 + p -> talents.concussion * 0.02;
     base_hit            += p -> talents.elemental_precision * 0.01;
     base_crit           += p -> talents.call_of_thunder * 0.05;
     base_crit           += p -> talents.tidal_mastery * 0.01;
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.20;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.25;
 
     cooldown -> duration  = 6.0;
     cooldown -> duration -= util_t::talent_rank( p -> talents.storm_earth_and_fire, 3, 0.75, 1.5, 2.5 );
@@ -1167,7 +1198,7 @@ struct chain_lightning_t : public shaman_spell_t
     lightning_overload_stats = p -> get_stats( "lightning_overload" );
     lightning_overload_stats -> school = SCHOOL_NATURE;
 
-    lightning_overload_chance = util_t::talent_rank( p -> talents.lightning_overload, 3, 0.11, 0.22, 0.33 ) / 3.0;
+    lightning_overload_chance = util_t::talent_rank( p -> talents.lightning_overload, 3, 0.20, 0.35, 0.50 ) / 3.0;
   }
 
   virtual void execute()
@@ -1277,13 +1308,13 @@ struct lightning_bolt_t : public shaman_spell_t
     direct_power_mod     = ( base_execute_time / 3.5 );
     base_execute_time   -= p -> talents.lightning_mastery * 0.1;
     base_cost_reduction += p -> talents.convection * 0.02;
-    base_multiplier     *= 1.0 + p -> talents.concussion * 0.01 + ( p -> glyphs.lightning_bolt != 0 ? 0.04 : 0.0 );
+    base_multiplier     *= 1.0 + p -> talents.concussion * 0.02 + ( p -> glyphs.lightning_bolt != 0 ? 0.04 : 0.0 );
     base_hit            += p -> talents.elemental_precision * 0.01;
     base_crit           += p -> talents.call_of_thunder * 0.05;
     base_crit           += p -> talents.tidal_mastery * 0.01;
-    direct_power_mod    += p -> talents.shamanism * 0.04;
+    direct_power_mod    += p -> talents.shamanism * 0.05;
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.20;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.25;
 
     if ( p -> set_bonus.tier6_4pc_caster() ) base_multiplier     *= 1.05;
     if ( p -> set_bonus.tier7_2pc_caster() ) base_cost_reduction += 0.05;
@@ -1293,7 +1324,7 @@ struct lightning_bolt_t : public shaman_spell_t
     lightning_overload_stats = p -> get_stats( "lightning_overload" );
     lightning_overload_stats -> school = SCHOOL_NATURE;
 
-    lightning_overload_chance = util_t::talent_rank( p -> talents.lightning_overload, 3, 0.11, 0.22, 0.33 );
+    lightning_overload_chance = util_t::talent_rank( p -> talents.lightning_overload, 3, 0.20, 0.35, 0.50 );
   }
 
   virtual void execute()
@@ -1351,10 +1382,12 @@ struct lava_burst_t : public shaman_spell_t
 {
   int maelstrom;
   int flame_shock;
+  stats_t* lightning_overload_stats;
+  double   lightning_overload_chance;
 
   lava_burst_t( player_t* player, const std::string& options_str ) :
       shaman_spell_t( "lava_burst", player, SCHOOL_FIRE, TREE_ELEMENTAL ),
-      maelstrom( 0 ), flame_shock( 0 )
+      maelstrom( 0 ), flame_shock( 0 ), lightning_overload_stats( 0 ), lightning_overload_chance( 0 )
   {
     shaman_t* p = player -> cast_shaman();
 
@@ -1369,7 +1402,7 @@ struct lava_burst_t : public shaman_spell_t
     static rank_t ranks[] =
     {
       { 80, 2, 1192, 1518, 0, 0.10 },
-      { 75, 1, 1012, 1290, 0, 0.10 },
+      { 57, 1, 1012, 1290, 0, 0.10 },  // Triumvirate: Rank 1 available at 57 (down from 75)
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 60043 );
@@ -1381,12 +1414,12 @@ struct lava_burst_t : public shaman_spell_t
 
     base_cost_reduction += p -> talents.convection * 0.02;
     base_execute_time   -= p -> talents.lightning_mastery * 0.1;
-    base_multiplier     *= 1.0 + p -> talents.concussion * 0.01 + p -> talents.call_of_flame * 0.02;
+    base_multiplier     *= 1.0 + p -> talents.concussion * 0.02 + p -> talents.call_of_flame * 0.03;
     base_hit            += p -> talents.elemental_precision * 0.01;
     direct_power_mod    += p -> talents.shamanism * 0.05;
 
-    base_crit_bonus_multiplier *= 1.0 + ( util_t::talent_rank( p -> talents.lava_flows,     3, 0.06, 0.12, 0.24 ) +
-                                          util_t::talent_rank( p -> talents.elemental_fury, 5, 0.20 ) +
+    base_crit_bonus_multiplier *= 1.0 + ( util_t::talent_rank( p -> talents.lava_flows,     3, 0.08, 0.16, 0.24 ) +
+                                          util_t::talent_rank( p -> talents.elemental_fury, 5, 0.25 ) +
                                           ( p -> set_bonus.tier7_4pc_caster() ? 0.10 : 0.00 ) );
 
     cooldown -> duration = 8.0;
@@ -1404,6 +1437,12 @@ struct lava_burst_t : public shaman_spell_t
       base_dd_min += 215;
       base_dd_max += 215;
     }
+
+    // Triumvirate: Lightning Overload now also affects Lava Burst
+    // (separate stats bucket since this is Fire school, not Nature like LB/CL's shared "lightning_overload" stat)
+    lightning_overload_stats = p -> get_stats( "lava_burst_overload" );
+    lightning_overload_stats -> school = SCHOOL_FIRE;
+    lightning_overload_chance = util_t::talent_rank( p -> talents.lightning_overload, 3, 0.20, 0.35, 0.50 );
   }
 
   virtual double total_td_multiplier() SC_CONST
@@ -1424,6 +1463,8 @@ struct lava_burst_t : public shaman_spell_t
 
       if ( p -> set_bonus.tier10_4pc_caster() && p -> active_flame_shock )
         p -> active_flame_shock -> extend_duration( 2 );
+
+      trigger_lightning_overload( this, lightning_overload_stats, lightning_overload_chance, 0.05 );
     }
   }
 
@@ -1568,14 +1609,14 @@ struct earth_shock_t : public shaman_spell_t
     may_crit          = true;
     base_execute_time = 0;
     direct_power_mod  = 0.41;
-    base_multiplier  *= 1.0 + p -> talents.concussion * 0.01 + p -> set_bonus.tier9_4pc_melee() * 0.25;
+    base_multiplier  *= 1.0 + p -> talents.concussion * 0.02 + p -> set_bonus.tier9_4pc_melee() * 0.25;
     base_hit         += p -> talents.elemental_precision * 0.01;
 
     base_cost_reduction  += ( p -> talents.convection        * 0.02 +
                               p -> talents.mental_quickness  * 0.02 +
                               p -> talents.shamanistic_focus * 0.45 );
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.20;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.25;
 
     cooldown = p -> get_cooldown( "shock" );
     cooldown -> duration  = 6.0;
@@ -1644,11 +1685,11 @@ struct fire_nova_t : public shaman_spell_t
     cooldown -> duration = 10.0;
 
     base_multiplier *= 1.0 + ( p -> talents.improved_fire_nova * 0.10 +
-			       p -> talents.call_of_flame      * 0.05 );
+			       p -> talents.call_of_flame      * 0.10 );
 
     base_hit += p -> talents.elemental_precision * 0.01;
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.20;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.25;
 
     if ( p -> glyphs.fire_nova ) cooldown -> duration -= 3.0;
     cooldown -> duration -= p -> talents.improved_fire_nova * 2.0;
@@ -1713,7 +1754,7 @@ struct frost_shock_t : public shaman_spell_t
     base_execute_time = 0;
     direct_power_mod  = 0.41;
 
-    base_multiplier  *= 1.0 + ( p -> talents.concussion          * 0.01 +
+    base_multiplier  *= 1.0 + ( p -> talents.concussion          * 0.02 +
                                 p -> talents.booming_echoes      * 0.10 +
                                 p -> set_bonus.tier9_4pc_melee() * 0.25 );
 
@@ -1723,7 +1764,7 @@ struct frost_shock_t : public shaman_spell_t
                               p -> talents.mental_quickness  * 0.02 +
                               p -> talents.shamanistic_focus * 0.45 );
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.20;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.25;
 
     cooldown = p -> get_cooldown( "shock" );
     cooldown -> duration  = 6.0;
@@ -1782,11 +1823,11 @@ struct flame_shock_t : public shaman_spell_t
 
     base_hit += p -> talents.elemental_precision * 0.01;
 
-    base_dd_multiplier *= 1.0 + ( p -> talents.concussion       * 0.01 +
+    base_dd_multiplier *= 1.0 + ( p -> talents.concussion       * 0.02 +
                                   p -> talents.booming_echoes   * 0.10 +
                                   p -> set_bonus.tier9_4pc_melee() * 0.25 );
 
-    base_td_multiplier *= 1.0 + ( p -> talents.concussion       * 0.01 +
+    base_td_multiplier *= 1.0 + ( p -> talents.concussion       * 0.02 +
                                   p -> set_bonus.tier9_4pc_melee() * 0.25 +
                                   util_t::talent_rank( p -> talents.storm_earth_and_fire, 3, 0.20 ) +
                                   p -> set_bonus.tier8_2pc_caster() * 0.2 );
@@ -1796,7 +1837,7 @@ struct flame_shock_t : public shaman_spell_t
                               p -> talents.mental_quickness  * 0.02 +
                               p -> talents.shamanistic_focus * 0.45 );
 
-    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.elemental_fury * 0.20 +
+    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.elemental_fury * 0.25 +
 					  p -> glyphs.flame_shock     * 0.60 );
 
     cooldown = p -> get_cooldown( "shock" );
@@ -1898,13 +1939,13 @@ struct searing_totem_t : public shaman_spell_t
     num_ticks         = 24;
     may_crit          = true;
     trigger_gcd       = 1.0;
-    base_multiplier  *= 1.0 + p -> talents.call_of_flame * 0.05;
+    base_multiplier  *= 1.0 + p -> talents.call_of_flame * 0.10;
     base_hit         += p -> talents.elemental_precision * 0.01;
 
     base_cost_reduction += ( p -> talents.totemic_focus    * 0.05 +
                              p -> talents.mental_quickness * 0.02 );
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.20;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.25;
 
     // Searing Totem is not a real DoT, but rather a pet that is spawned.
     pseudo_pet = true;
@@ -1993,13 +2034,13 @@ struct magma_totem_t : public shaman_spell_t
     num_ticks         = 10;
     may_crit          = true;
     trigger_gcd       = 1.0;
-    base_multiplier  *= 1.0 + p -> talents.call_of_flame * 0.05;
+    base_multiplier  *= 1.0 + p -> talents.call_of_flame * 0.10;
     base_hit         += p -> talents.elemental_precision * 0.01;
 
     base_cost_reduction += ( p -> talents.totemic_focus    * 0.05 +
                              p -> talents.mental_quickness * 0.02 );
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.20;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.25;
 
     // Magma Totem is not a real DoT, but rather a pet that is spawned.
     pseudo_pet = true;
@@ -2150,7 +2191,7 @@ struct flametongue_totem_t : public shaman_spell_t
                              p -> talents.mental_quickness * 0.02 );
 
     bonus = util_t::ability_rank( p -> level,  144,80,  122,76,  106,72,  73,67,  62,0 );
-    bonus *= 1 + p -> talents.enhancing_totems * 0.05;
+    bonus *= 1 + p -> talents.enhancing_totems * 0.10;
 
     observer = &( p -> active_fire_totem );
 
@@ -2229,6 +2270,13 @@ struct fire_elemental_totem_t : public shaman_spell_t
   {
     shaman_spell_t::last_tick();
     player -> dismiss_pet( "fire_elemental" );
+  }
+
+  virtual bool ready()
+  {
+    if ( player -> level < 60 ) return false;  // Triumvirate: level requirement
+
+    return shaman_spell_t::ready();
   }
 };
 
@@ -2326,7 +2374,7 @@ struct flametongue_weapon_t : public shaman_spell_t
 
     bonus_power = util_t::ability_rank( p -> level,  211.0,80,  186.0,77,  157.0,72,  96.0,65,  45.0,0  );
 
-    bonus_power *= 1.0 + p -> talents.elemental_weapons * 0.10;
+    bonus_power *= 1.0 + p -> talents.elemental_weapons * 0.15;  // Triumvirate: 15/30/45% (was 10/20/30%)
 
     id = 58790;
   }
@@ -2454,7 +2502,7 @@ struct strength_of_earth_totem_t : public shaman_spell_t
                              p -> talents.mental_quickness * 0.02 );
 
     bonus  = util_t::ability_rank( p -> level,  155,80, 115,75, 86,65,  77,0 );
-    bonus *= 1.0 + p -> talents.enhancing_totems * 0.05;
+    bonus *= 1.0 + p -> talents.enhancing_totems * 0.10;
 
     id = 58643;
   }
@@ -2512,6 +2560,8 @@ struct wrath_of_air_totem_t : public shaman_spell_t
 
   virtual bool ready()
   {
+    if ( player -> level < 52 ) return false;  // Triumvirate: level requirement
+
     if ( sim -> auras.wrath_of_air -> check() )
       return false;
 
@@ -2614,7 +2664,7 @@ struct mana_spring_totem_t : public shaman_spell_t
 
     regen = util_t::ability_rank( p -> level,  91.0,80,  82.0,76,  73.0,71,  41.0,65,  31.0,0 );
 
-    regen *= 1.0 + util_t::talent_rank( p -> talents.restorative_totems, 3, 0.07, 0.12, 0.20 );
+    regen *= 1.0 + util_t::talent_rank( p -> talents.restorative_totems, 3, 0.10, 0.20, 0.30 );  // Triumvirate: 10/20/30% (was 7/12/20%)
 
     id = 58774;
   }
@@ -2674,6 +2724,8 @@ struct bloodlust_t : public shaman_spell_t
 
   virtual bool ready()
   {
+    if ( player -> level < 60 ) return false;  // Triumvirate: level requirement
+
     if ( player -> buffs.bloodlust -> check() )
       return false;
 
@@ -2751,7 +2803,7 @@ struct lightning_shield_t : public shaman_spell_t
       base_hit        += p -> talents.elemental_precision * 0.01;
       base_multiplier *= 1.0 + p -> talents.improved_shields * 0.05 + ( p -> set_bonus.tier7_2pc_melee() ? 0.10 : 0.00 );
 
-      base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.20;
+      base_crit_bonus_multiplier *= 1.0 + p -> talents.elemental_fury * 0.25;
 
       if ( p -> glyphs.lightning_shield ) base_multiplier *= 1.20;
 
@@ -2862,6 +2914,8 @@ struct thunderstorm_t : public shaman_spell_t
     check_talent( p -> talents.thunderstorm );
     cooldown -> duration = 45.0;
 
+    base_multiplier *= 1.0 + p -> talents.concussion * 0.02;  // Triumvirate: Concussion now affects Thunderstorm
+
     id = 59159;
   }
 
@@ -2869,7 +2923,7 @@ struct thunderstorm_t : public shaman_spell_t
   {
     shaman_t* p = player -> cast_shaman();
     update_ready();
-    double mana_pct = p -> glyphs.thunderstorm ? 0.10 : 0.08;
+    double mana_pct = p -> glyphs.thunderstorm ? 0.18 : 0.16;  // Triumvirate: base 16% (up from 8%), glyph bonus unchanged
     p -> resource_gain( RESOURCE_MANA, p -> resource_max[ RESOURCE_MANA ] * mana_pct, p -> gains_thunderstorm );
   }
 
@@ -2947,6 +3001,7 @@ action_t* shaman_t::create_action( const std::string& name,
   if ( name == "magma_totem"             ) return new              magma_totem_t( this, options_str );
   if ( name == "shamanistic_rage"        ) return new         shamanistic_rage_t( this, options_str );
   if ( name == "spirit_wolf"             ) return new        spirit_wolf_spell_t( this, options_str );
+  if ( name == "primal_strike"           ) return new            primal_strike_t( this, options_str );  // Triumvirate
   if ( name == "stormstrike"             ) return new              stormstrike_t( this, options_str );
   if ( name == "strength_of_earth_totem" ) return new  strength_of_earth_totem_t( this, options_str );
   if ( name == "thunderstorm"            ) return new             thunderstorm_t( this, options_str );
@@ -3082,7 +3137,7 @@ void shaman_t::init_base()
 
   attribute_multiplier_initial[ ATTR_INTELLECT ] *= 1.0 + talents.ancestral_knowledge * 0.02;
   attribute_multiplier_initial[ ATTR_STAMINA   ] *= 1.0 + talents.toughness           * 0.02;
-  base_attack_expertise = talents.unleashed_rage * 0.03;
+  base_attack_expertise = talents.unleashed_rage * 0.05;  // Triumvirate: 5/10/15 (was 3/6/9)
 
   base_attack_power = ( level * 2 ) - 20;
   initial_attack_power_per_strength = 1.0;
@@ -3091,7 +3146,7 @@ void shaman_t::init_base()
   health_per_stamina = 10;
   mana_per_intellect = 15;
 
-  mp5_per_intellect = util_t::talent_rank( talents.unrelenting_storm, 3, 0.04 );
+  mp5_per_intellect = util_t::talent_rank( talents.unrelenting_storm, 3, 0.07 );
 
   base_spell_crit  += talents.blessing_of_the_eternals * 0.02;
   base_spell_crit  += talents.thundering_strikes * 0.01;
@@ -3177,7 +3232,7 @@ void shaman_t::init_buffs()
   buffs_flurry                = new buff_t( this, "flurry",                3,   0.0, 0.0, talents.flurry                );
   buffs_lightning_shield      = new buff_t( this, "lightning_shield",      3 + 2 * talents.static_shock );
   buffs_maelstrom_weapon      = new buff_t( this, "maelstrom_weapon",      5,  30.0 );
-  buffs_nature_vulnerability  = new buff_t( this, "nature_vulnerability",  4,  12.0 );
+  buffs_nature_vulnerability  = new buff_t( this, "nature_vulnerability",  4,  20.0 );  // Triumvirate: 20s (was 12s)
   buffs_natures_swiftness     = new buff_t( this, "natures_swiftness" );
   buffs_shamanistic_rage      = new buff_t( this, "shamanistic_rage",      1,  15.0, 0.0, talents.shamanistic_rage      );
   buffs_tier10_2pc_melee      = new buff_t( this, "tier10_2pc_melee",      1,  15.0, 0.0, set_bonus.tier10_2pc_melee() );
@@ -3322,7 +3377,7 @@ void shaman_t::init_actions()
           action_list_str += "/elemental_mastery,if=!buff.bloodlust.react";
       }
       action_list_str += "/flame_shock,if=!ticking";
-      if ( level >= 75 ) action_list_str += "/lava_burst,if=(dot.flame_shock.remains-cast_time)>=0";
+      if ( level >= 57 ) action_list_str += "/lava_burst,if=(dot.flame_shock.remains-cast_time)>=0";  // Triumvirate: Lava Burst Rank 1 = level 57
       if ( ! talents.totem_of_wrath )
       {
 	    action_list_str += "/fire_elemental_totem";

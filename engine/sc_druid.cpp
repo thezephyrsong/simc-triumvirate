@@ -20,6 +20,9 @@ struct druid_t : public player_t
 
   // Buffs
   buff_t* buffs_berserk;
+  // Triumvirate: Balance spell-weaving proc buffs
+  buff_t* buffs_whispers_of_the_crow;   // triggered by Wrath, buffs Starfire (+2% dmg/stack)
+  buff_t* buffs_whispers_of_the_raven;  // triggered by Starfire, buffs Wrath (+2% dmg/stack)
   buff_t* buffs_bear_form;
   buff_t* buffs_cat_form;
   buff_t* buffs_combo_points;
@@ -104,6 +107,8 @@ struct druid_t : public player_t
     int  force_of_nature;
     int  furor;
     int  genesis;
+    int  gift_of_nature;          // Triumvirate: 3/6/9/12/15% healing (up from 2/4/6/8/10%)
+    int  gift_of_the_earthmother; // Triumvirate: 3/6/9% spell haste (up from 2/4/6%)
     int  heart_of_the_wild;
     int  improved_faerie_fire;
     int  improved_insect_swarm;
@@ -188,7 +193,10 @@ struct druid_t : public player_t
     int shred;
     int starfire;
     int starfall;
+    int the_wild;   // Triumvirate: +20% MotW attributes
+    int thorns;     // Triumvirate: +20% Thorns damage return
     int typhoon;
+    int wrath;      // Triumvirate: flat +5% Wrath damage
     glyphs_t() { memset( ( void* ) this, 0x0, sizeof( glyphs_t ) ); }
   };
   glyphs_t glyphs;
@@ -217,7 +225,10 @@ struct druid_t : public player_t
     active_t10_4pc_caster_dot = 0;
     active_wrath_dot    = 0;
 
-    cooldowns_mangle_bear = get_cooldown( "mangle_bear" );
+    cooldowns_mangle_bear        = get_cooldown( "mangle_bear" );
+  // Triumvirate
+  buffs_whispers_of_the_crow  = 0;
+  buffs_whispers_of_the_raven = 0;
 
     distance = 30;
 
@@ -327,7 +338,7 @@ struct druid_cat_attack_t : public attack_t
   {
     druid_t* p = player -> cast_druid();
 
-    base_crit_multiplier *= 1.0 + util_t::talent_rank( p -> talents.predatory_instincts, 3, 0.03, 0.07, 0.10 );
+    base_crit_multiplier *= 1.0 + p -> talents.predatory_instincts * 0.07;  // Triumvirate: 7/14/21%
   }
 
   virtual void   parse_options( option_t*, const std::string& options_str );
@@ -688,7 +699,7 @@ static void trigger_primal_fury( druid_bear_attack_t* a )
 
   if ( p -> rng_primal_fury -> roll( p -> talents.primal_fury * 0.5 ) )
   {
-    p -> resource_gain( RESOURCE_RAGE, 5.0, p -> gains_primal_fury );
+    p -> resource_gain( RESOURCE_RAGE, 10.0, p -> gains_primal_fury );  // Triumvirate: 10 rage (up from 5)
   }
 }
 
@@ -1179,7 +1190,7 @@ struct rip_t : public druid_cat_attack_t
       base_cost -= 10;
     base_tick_time        = 2.0;
 
-    num_ticks = 6 + ( p -> glyphs.rip * 2 ) + ( p -> set_bonus.tier7_2pc_melee() * 2 );
+    num_ticks = 6 + ( p -> glyphs.rip * 3 ) + ( p -> set_bonus.tier7_2pc_melee() * 2 );  // Triumvirate: +6s (up from +4s)
 
     static double dmg_80[] = { 36+93*1, 36+93*2, 36+93*3, 36+93*4, 36+93*5 };
     static double dmg_71[] = { 30+67*1, 30+67*2, 30+67*3, 30+67*4, 30+67*5 };
@@ -1203,7 +1214,7 @@ struct rip_t : public druid_cat_attack_t
     if ( result_is_hit() )
     {
       added_ticks = 0;
-      num_ticks = 6 + ( p -> glyphs.rip * 2 ) + ( p -> set_bonus.tier7_2pc_melee() * 2 );
+      num_ticks = 6 + ( p -> glyphs.rip * 3 ) + ( p -> set_bonus.tier7_2pc_melee() * 2 );  // Triumvirate: +6s (up from +4s)
       update_ready();
     }
   }
@@ -1337,7 +1348,7 @@ struct shred_t : public druid_cat_attack_t
 
     if ( t -> debuffs.bleeding -> check() )
     {
-      player_multiplier *= 1 + 0.04 * p -> talents.rend_and_tear;
+      player_multiplier *= 1 + 0.05 * p -> talents.rend_and_tear;  // Triumvirate: 5/10/15/20/25%
     }
 
   }
@@ -1513,7 +1524,7 @@ struct ferocious_bite_t : public druid_cat_attack_t
 
     if ( sim -> target -> debuffs.bleeding -> check() )
     {
-      player_crit += 0.05 * p -> talents.rend_and_tear;
+      player_crit += 0.06 * p -> talents.rend_and_tear;  // Triumvirate: 6/12/18/24/30%
     }
 
   }
@@ -1862,13 +1873,13 @@ struct mangle_bear_t : public druid_bear_attack_t
     init_rank( ranks, 48564 );
 
     weapon = &( p -> main_hand_weapon );
-    weapon_multiplier *= 1.15;
+    weapon_multiplier *= 1.40;  // Triumvirate: 140% (up from 115%)
 
     may_crit = true;
     base_cost -= p -> talents.ferocity;
 
-    base_multiplier *= 1.0 + ( p -> talents.savage_fury * 0.10 +
-			       p -> glyphs.mangle       * 0.10 );
+    base_multiplier *= 1.0 + ( p -> talents.savage_fury * 0.12 );  // Triumvirate: 12/24% +
+			       p -> glyphs.mangle       * 0.10
 
     cooldown = p -> get_cooldown( "mangle_bear" );
     cooldown -> duration = 6.0 - p -> talents.improved_mangle * 0.5;
@@ -1924,7 +1935,7 @@ struct maul_t : public druid_bear_attack_t
     normalize_weapon_speed = false;
 
     base_cost -= p -> talents.ferocity;
-    base_multiplier *= 1.0 + p -> talents.savage_fury * 0.10;
+    base_multiplier *= 1.0 + p -> talents.savage_fury * 0.12  // Triumvirate: 12/24%;
 
     p -> active_mauls.push_back( this );
   }
@@ -1950,7 +1961,7 @@ struct maul_t : public druid_bear_attack_t
 
     if ( t -> debuffs.bleeding -> check() )
     {
-      player_multiplier *= 1 + 0.04 * p -> talents.rend_and_tear;
+      player_multiplier *= 1 + 0.05 * p -> talents.rend_and_tear;  // Triumvirate: 5/10/15/20/25%
     }
 
   }
@@ -1991,7 +2002,8 @@ struct swipe_bear_t : public druid_bear_attack_t
     may_crit = true;
     base_cost -= p -> talents.ferocity;
 
-    base_multiplier *= 1.0 + p -> talents.feral_instinct * 0.10;
+    base_multiplier *= 1.3125;  // Triumvirate: +31.25% total (25% * 1.05 compounding)
+    base_multiplier *= 1.0 + p -> talents.feral_instinct * 0.15;  // Triumvirate: 15/30/45% (up from 10%)
   }
 
   virtual void assess_damage( double amount,
@@ -2509,16 +2521,16 @@ struct moonfire_t : public druid_spell_t
     tick_may_crit     = ( p -> set_bonus.tier9_2pc_caster() != 0 );
 
     base_cost *= 1.0 - util_t::talent_rank( p -> talents.moonglow,    3, 0.03 );
-    base_crit = util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.05 );
+    base_crit = util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.07 );  // Triumvirate: 7/14%
 
-    base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.20 );
+    base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.25 );  // Triumvirate: 25/50/75/100/125%
 
-    double multiplier_td = ( util_t::talent_rank( p -> talents.moonfury,          3, 0.03, 0.06, 0.10 ) +
-                             util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.05 ) +
-                             util_t::talent_rank( p -> talents.genesis,           5, 0.01 ) );
+    double multiplier_td = ( util_t::talent_rank( p -> talents.moonfury, 3, 0.05, 0.10, 0.15 )   // Triumvirate: 5/10/15%
+                           + util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.07 )  // Triumvirate: 7/14%
+                           + util_t::talent_rank( p -> talents.genesis,           5, 0.01 ) );
 
-    double multiplier_dd = ( util_t::talent_rank( p -> talents.moonfury,          3, 0.03, 0.06, 0.10 ) +
-                             util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.05 ) );
+    double multiplier_dd = ( util_t::talent_rank( p -> talents.moonfury, 3, 0.05, 0.10, 0.15 )   // Triumvirate: 5/10/15%
+                           + util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.07 ) )  // Triumvirate: 7/14%
 
     if ( p -> glyphs.moonfire )
     {
@@ -2533,7 +2545,7 @@ struct moonfire_t : public druid_spell_t
   {
     druid_t* p = player -> cast_druid();
 
-    base_crit = util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.05 );
+    base_crit = util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.07 );  // Triumvirate: 7/14%
     druid_spell_t::execute();
     base_crit = 0;
 
@@ -2615,7 +2627,7 @@ struct bear_form_t : public druid_spell_t
     p -> reset_gcd();
 
     p -> dodge += 0.02 * p -> talents.feral_swiftness + 0.02 * p -> talents.natural_reaction;
-    p -> armor_multiplier += 3.7 * ( 1.0 + 0.11 * p -> talents.survival_of_the_fittest );
+    p -> armor_multiplier += 2.0 * ( 1.0 + 0.11 * p -> talents.survival_of_the_fittest );  // Triumvirate: 200% cloth/leather armor (spec)
 
     if ( p -> talents.leader_of_the_pack )
     {
@@ -2839,10 +2851,10 @@ struct starfire_t : public druid_spell_t
 
     base_cost         *= 1.0 - util_t::talent_rank( p -> talents.moonglow, 3, 0.03 );
     base_execute_time -= util_t::talent_rank( p -> talents.starlight_wrath, 5, 0.1 );
-    base_multiplier   *= 1.0 + util_t::talent_rank( p -> talents.moonfury, 3, 0.03, 0.06, 0.10 );
+    base_multiplier   *= 1.0 + util_t::talent_rank( p -> talents.moonfury, 3, 0.05, 0.10, 0.15 );  // Triumvirate: 5/10/15%
     base_crit         += util_t::talent_rank( p -> talents.natures_majesty, 2, 0.02 );
-    direct_power_mod  += util_t::talent_rank( p -> talents.wrath_of_cenarius, 5, 0.04 );
-    base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.20 );
+    direct_power_mod  += util_t::talent_rank( p -> talents.wrath_of_cenarius, 5, 0.05 );  // Triumvirate: 5/10/15/20/25% for Starfire
+    base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.25 );  // Triumvirate: 25/50/75/100/125%
 
     if ( p -> idols.shooting_star )
     {
@@ -2868,6 +2880,12 @@ struct starfire_t : public druid_spell_t
     if ( p -> dots_moonfire -> ticking() )
     {
       player_crit += 0.01 * p -> talents.improved_insect_swarm;
+    }
+
+    // Triumvirate: Whispers of the Crow - +2% Starfire damage per stack
+    if ( p -> buffs_whispers_of_the_crow && p -> buffs_whispers_of_the_crow -> check() )
+    {
+      player_multiplier *= 1.0 + ( 0.02 * p -> buffs_whispers_of_the_crow -> stack() );
     }
   }
 
@@ -2903,6 +2921,8 @@ struct starfire_t : public druid_spell_t
           if ( p -> dots_moonfire -> action -> added_ticks < 3 )
             p -> dots_moonfire -> action -> extend_duration( 1 );
       }
+      // Triumvirate: Starfire hits trigger Whispers of the Raven (buffs Wrath)
+      if ( p -> buffs_whispers_of_the_raven ) p -> buffs_whispers_of_the_raven -> trigger( 1 );
     }
   }
   virtual double execute_time() SC_CONST
@@ -3009,11 +3029,11 @@ struct wrath_t : public druid_spell_t
     base_cost         *= 1.0 - util_t::talent_rank( p -> talents.moonglow, 3, 0.03 );
     base_execute_time -= util_t::talent_rank( p -> talents.starlight_wrath, 5, 0.1 );
     base_crit         += util_t::talent_rank( p -> talents.natures_majesty, 2, 0.02 );
-    direct_power_mod  += util_t::talent_rank( p -> talents.wrath_of_cenarius, 5, 0.02 );
-    base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.20 );
+    direct_power_mod  += util_t::talent_rank( p -> talents.wrath_of_cenarius, 5, 0.03 );  // Triumvirate: 3/6/9/12/15% for Wrath
+    base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.25 );  // Triumvirate: 25/50/75/100/125%
 
     // The % bonus from eclipse and moonfury are additive, so have to sum them up in player_buff()
-    moonfury_bonus = util_t::talent_rank( p -> talents.moonfury, 3, 0.03, 0.06, 0.10 );
+    moonfury_bonus = util_t::talent_rank( p -> talents.moonfury, 3, 0.05, 0.10, 0.15 );  // Triumvirate: 5/10/15%
 
     if ( p -> set_bonus.tier7_4pc_caster() ) base_crit += 0.05;
     if ( p -> set_bonus.tier9_4pc_caster() ) base_multiplier   *= 1.04;
@@ -3043,6 +3063,8 @@ struct wrath_t : public druid_spell_t
         }
       }
       trigger_earth_and_moon( this );
+      // Triumvirate: Wrath hits trigger Whispers of the Crow (buffs Starfire)
+      if ( p -> buffs_whispers_of_the_crow ) p -> buffs_whispers_of_the_crow -> trigger( 1 );
     }
   }
 
@@ -3063,7 +3085,19 @@ struct wrath_t : public druid_spell_t
 
     if ( p -> dots_insect_swarm -> ticking() )
     {
-      player_multiplier *= 1.0 + p -> talents.improved_insect_swarm * 0.01;
+      player_multiplier *= 1.0 + p -> talents.improved_insect_swarm * 0.02;  // Triumvirate: 2/4/6%
+    }
+
+    // Triumvirate: Whispers of the Raven - +2% Wrath damage per stack
+    if ( p -> buffs_whispers_of_the_raven && p -> buffs_whispers_of_the_raven -> check() )
+    {
+      player_multiplier *= 1.0 + ( 0.02 * p -> buffs_whispers_of_the_raven -> stack() );
+    }
+
+    // Triumvirate: Glyph of Wrath - flat 5% Wrath damage increase
+    if ( p -> glyphs.wrath )
+    {
+      player_multiplier *= 1.05;
     }
   }
 
@@ -3136,8 +3170,8 @@ struct starfall_t : public druid_spell_t
         dual              = true;
 
         base_crit                  += util_t::talent_rank( p -> talents.natures_majesty, 2, 0.02 );
-        base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.20 );
-        if ( p -> glyphs.focus ) base_multiplier *= 1.1;
+        base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.25 );  // Triumvirate: 25/50/75/100/125%
+        if ( p -> glyphs.focus ) base_multiplier *= 1.15;  // Triumvirate: 15% (up from 10%)
         id = 53190;
       }
       virtual void execute()
@@ -3165,7 +3199,7 @@ struct starfall_t : public druid_spell_t
 
         base_dd_min = base_dd_max  = 0;
         base_crit                  += util_t::talent_rank( p -> talents.natures_majesty, 2, 0.02 );
-        base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.20 );
+        base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.25 );  // Triumvirate: 25/50/75/100/125%
 
         if ( p -> glyphs.focus )
           base_multiplier *= 1.2;
@@ -3286,6 +3320,8 @@ struct mark_of_the_wild_t : public druid_spell_t
     trigger_gcd = 0;
     bonus  = util_t::ability_rank( player -> level,  37.0,80, 14.0,70,  12.0,0 );
     bonus *= 1.0 + p -> talents.improved_mark_of_the_wild * 0.20;
+    // Triumvirate: Glyph of the Wild +20% to Mark of the Wild attributes/resistances
+    if ( p -> glyphs.the_wild ) bonus *= 1.20;
     id = 48469;
   }
 
@@ -3493,10 +3529,13 @@ void druid_t::init_glyphs()
     else if ( n == "survival_instincts"    ) ;
     else if ( n == "swiftmend"             ) ;
     else if ( n == "the_wild"              ) ;
-    else if ( n == "thorns"                ) ;
+    else if ( n == "thorns"                ) glyphs.thorns   = 1;  // Triumvirate
+    else if ( n == "the_wild"              ) glyphs.the_wild = 1;  // Triumvirate
+    else if ( n == "wrath"                 ) glyphs.wrath    = 1;  // Triumvirate
     else if ( n == "unburdened_rebirth"    ) ;
     else if ( n == "wild_growth"           ) ;
-    else if ( n == "wrath"                 ) ;
+    else if ( n == "wrath"          ) glyphs.wrath = 1;  // Triumvirate: flat 5% Wrath dmg
+    \1 ;
     else if ( ! sim -> parent )
     {
       sim -> errorf( "Player %s has unrecognized glyph %s\n", name(), n.c_str() );
@@ -3538,12 +3577,16 @@ void druid_t::init_base()
   initial_spell_crit_per_intellect = rating_t::get_attribute_base( sim, level, DRUID, race, BASE_STAT_SPELL_CRIT_PER_INT );
   initial_attack_crit_per_agility  = rating_t::get_attribute_base( sim, level, DRUID, race, BASE_STAT_MELEE_CRIT_PER_AGI );
 
-  base_spell_crit += talents.natural_perfection * 0.01;
+  base_spell_crit += talents.natural_perfection * 0.02;  // Triumvirate: 2/4/6%
+  // Triumvirate: Gift of Nature 3/6/9/12/15% healing output (applied to heal spells)
+  // Gift of the Earthmother 3/6/9% haste - applied as casting speed bonus
+  if ( talents.gift_of_the_earthmother )
+    base_spell_speed *= 1.0 - talents.gift_of_the_earthmother * 0.03;
 
   for ( int i=0; i < ATTRIBUTE_MAX; i++ )
   {
     attribute_multiplier_initial[ i ] *= 1.0 + 0.02 * talents.survival_of_the_fittest;
-    attribute_multiplier_initial[ i ] *= 1.0 + 0.01 * talents.improved_mark_of_the_wild;
+    attribute_multiplier_initial[ i ] *= 1.0 + 0.02 * talents.improved_mark_of_the_wild;  // Triumvirate: 2/4%
   }
 
   attribute_multiplier_initial[ ATTR_INTELLECT ] *= 1.0 + 0.04 * talents.heart_of_the_wild;
@@ -3593,12 +3636,14 @@ void druid_t::init_buffs()
   player_t::init_buffs();
 
   // buff_t( sim, player, name, max_stack, duration, cooldown, proc_chance, quiet )
-  buffs_berserk            = new buff_t( this, "berserk"           , 1,  15.0 + ( glyphs.berserk ? 5.0 : 0.0 ) );
+  buffs_berserk            = new buff_t( this, "berserk"           , 1,  20.0 + ( glyphs.berserk ? 5.0 : 0.0 ) );  // Triumvirate: 20s (up from 15s)
+  buffs_whispers_of_the_crow  = new buff_t( this, "whispers_of_the_crow",  10, 30.0 );  // Triumvirate
+  buffs_whispers_of_the_raven = new buff_t( this, "whispers_of_the_raven", 10, 30.0 );  // Triumvirate
   buffs_eclipse_lunar      = new buff_t( this, "lunar_eclipse"     , 1,  15.0,  30.0, talents.eclipse / 5.0 );
   buffs_eclipse_solar      = new buff_t( this, "solar_eclipse"     , 1,  15.0,  30.0, talents.eclipse / 3.0 );
   buffs_enrage             = new buff_t( this, "enrage"            , 1,  10.0 );
   buffs_lacerate           = new buff_t( this, "lacerate"          , 5,  15.0 );
-  buffs_natures_grace      = new buff_t( this, "natures_grace"     , 1,   3.0,     0, talents.natures_grace / 3.0 );
+  buffs_natures_grace      = new buff_t( this, "natures_grace"     , 1,   6.0,     0, talents.natures_grace / 3.0 );  // Triumvirate: 6s (up from 3s)
   buffs_natures_swiftness  = new buff_t( this, "natures_swiftness" , 1, 180.0, 180.0 );
   buffs_omen_of_clarity    = new buff_t( this, "omen_of_clarity"   , 1,  15.0,     0, talents.omen_of_clarity * 3.5 / 60.0 );
   buffs_t8_4pc_caster      = new buff_t( this, "t8_4pc_caster"     , 1,  10.0,     0, set_bonus.tier8_4pc_caster() * 0.08 );
@@ -3966,7 +4011,7 @@ double druid_t::composite_spell_hit() SC_CONST
 {
   double hit = player_t::composite_spell_hit();
 
-  hit += talents.balance_of_power * 0.02;
+  hit += talents.balance_of_power * 0.03  // Triumvirate: 3/6%;
 
   return floor( hit * 10000.0 ) / 10000.0;
 }
@@ -3988,8 +4033,11 @@ double druid_t::composite_attribute_multiplier( int attr ) SC_CONST
 
   if ( attr == ATTR_STAMINA )
     if ( buffs_bear_form -> check() )
+    {
+      m *= 1.40;  // Triumvirate: +40% Stamina in Bear Form (up from +25%)
       if ( talents.heart_of_the_wild )
-        m *= 1.0 + 0.02 * talents.heart_of_the_wild;
+        m *= 1.0 + 0.03 * talents.heart_of_the_wild;  // Triumvirate: HotW 3/6/9/12/15%
+    }
 
   return m;
 }
@@ -4161,6 +4209,8 @@ std::vector<option_t>& druid_t::get_options()
       { "furor",                     OPT_INT,  &( talents.furor                     ) },
       { "gale_winds",                OPT_INT,  &( talents.gale_winds                ) },
       { "genesis",                   OPT_INT,  &( talents.genesis                   ) },
+      { "gift_of_nature",            OPT_INT,  &( talents.gift_of_nature            ) },  // Triumvirate
+      { "gift_of_the_earthmother",   OPT_INT,  &( talents.gift_of_the_earthmother   ) },  // Triumvirate
       { "heart_of_the_wild",         OPT_INT,  &( talents.heart_of_the_wild         ) },
       { "improved_faerie_fire",      OPT_INT,  &( talents.improved_faerie_fire      ) },
       { "improved_insect_swarm",     OPT_INT,  &( talents.improved_insect_swarm     ) },

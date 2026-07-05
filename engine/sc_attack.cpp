@@ -5,6 +5,12 @@
 
 #include "simulationcraft.h"
 
+// Triumvirate: Rogue poisons above level 60 are blocked from applying.
+// Any poison application check should validate: item_level <= 60
+// This is enforced via the item suppression logic in sc_item.cpp.
+// If explicit poison rank checks are needed, add them here.
+
+
 // ==========================================================================
 // Attack
 // ==========================================================================

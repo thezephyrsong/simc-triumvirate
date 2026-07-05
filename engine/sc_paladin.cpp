@@ -940,7 +940,7 @@ struct seal_of_command_judgement_t : public paladin_attack_t
     base_cost *= 1.0 - p -> talents.benediction * 0.02;
 
     base_crit       += 0.06 * p -> talents.fanaticism;
-    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.05 +
+    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.06  // Triumvirate: 6/12% +
                                p -> talents.judgements_of_the_pure * 0.05 +
                                p -> set_bonus.tier10_4pc_melee()   * 0.10 );
 
@@ -1012,7 +1012,7 @@ struct seal_of_justice_judgement_t : public paladin_attack_t
     base_cost *= 1.0 - p -> talents.benediction * 0.02;
 
     base_crit       += 0.06 * p -> talents.fanaticism;
-    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.05 + 
+    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.06  // Triumvirate: 6/12% + 
                                p -> talents.judgements_of_the_pure * 0.05 +
                                p -> set_bonus.tier10_4pc_melee()   * 0.10 );   
 
@@ -1077,7 +1077,7 @@ struct seal_of_light_judgement_t : public paladin_attack_t
     base_cost *= 1.0 - 0.02 * p -> talents.benediction;
 
     base_crit       += 0.06 * p -> talents.fanaticism;
-    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.05 +
+    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.06  // Triumvirate: 6/12% +
                                p -> talents.judgements_of_the_pure * 0.05 + 
                                p -> set_bonus.tier10_4pc_melee()   * 0.10 );
 
@@ -1145,7 +1145,7 @@ struct seal_of_righteousness_judgement_t : public paladin_attack_t
     base_cost  = 0.05 * p -> resource_base[ RESOURCE_MANA ];
     base_cost *= 1.0 - 0.02 * p -> talents.benediction;
 
-    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.05 +
+    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.06  // Triumvirate: 6/12% +
                                p -> talents.judgements_of_the_pure * 0.05 +
                                p -> talents.seals_of_the_pure      * 0.03 +
                                p -> set_bonus.tier10_4pc_melee()   * 0.10 );
@@ -1293,7 +1293,7 @@ struct seal_of_vengeance_judgement_t : public paladin_attack_t
     base_cost *= 1.0 - p -> talents.benediction * 0.02;
 
     base_crit       += 0.06 * p -> talents.fanaticism;
-    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.05 +
+    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.06  // Triumvirate: 6/12% +
                                p -> talents.judgements_of_the_pure * 0.05 +
                                p -> talents.seals_of_the_pure      * 0.03 +
                                p -> set_bonus.tier10_4pc_melee()   * 0.10 );
@@ -1361,7 +1361,7 @@ struct seal_of_wisdom_judgement_t : public paladin_attack_t
     base_cost *= 1.0 - p -> talents.benediction * 0.02;
 
     base_crit       += 0.06 * p -> talents.fanaticism;
-    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.05 +
+    base_multiplier *= 1.0 + ( p -> talents.the_art_of_war         * 0.06  // Triumvirate: 6/12% +
                                p -> talents.judgements_of_the_pure * 0.05 +
                                p -> set_bonus.tier10_4pc_melee()   * 0.10 );
 
@@ -2033,6 +2033,24 @@ struct holy_wrath_t : public paladin_spell_t
 // ==========================================================================
 
 // paladin_t::create_action ==================================================
+
+
+// penetrating_strike_t =====================================================
+// Triumvirate: new baseline Paladin ability learned at level 1.
+// Instant melee attack for 75% weapon damage. Shares cooldown with
+// Crusader Strike and Hammer of the Righteous (but NOT Hammer of Wrath).
+
+struct penetrating_strike_t : public paladin_attack_t
+{
+  penetrating_strike_t( player_t* player, const std::string& options_str ) :
+      paladin_attack_t( "penetrating_strike", player, SCHOOL_PHYSICAL, TREE_RETRIBUTION )
+  {
+    may_crit             = true;
+    base_cost            = 0;
+    cooldown -> duration = 4.5;  // Shares with Crusader Strike
+    base_multiplier     *= 0.75;
+  }
+};
 
 action_t* paladin_t::create_action( const std::string& name, const std::string& options_str )
 {

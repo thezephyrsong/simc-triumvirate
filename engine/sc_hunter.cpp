@@ -162,6 +162,7 @@ struct hunter_t : public player_t
     int  bestial_wrath;
     int  chimera_shot;
     int  explosive_shot;
+    int  explosive_trap;  // Triumvirate: NEW - also allows Black Arrow ticks to crit
     int  hunters_mark;
     int  kill_shot;
     int  multi_shot;
@@ -245,7 +246,7 @@ struct hunter_t : public player_t
   }
   double ranged_weapon_specialization_multiplier()
   {
-    return 1.0 + util_t::talent_rank( talents.ranged_weapon_specialization, 3, 0.01, 0.03, 0.05 );
+    return 1.0 + util_t::talent_rank( talents.ranged_weapon_specialization, 3, 0.03, 0.06, 0.09 );  // Triumvirate: 3/6/9% (was 1/3/5%)
   }
 };
 
@@ -493,13 +494,13 @@ struct hunter_pet_t : public pet_t
     initial_attack_power_multiplier *= 1.0 + o -> talents.animal_handler * 0.05;
 
     base_attack_crit = 0.032 + talents.spiders_bite * 0.03;
-    base_attack_crit += o -> talents.ferocity * 0.02;
+    base_attack_crit += o -> talents.ferocity * 0.03;  // Triumvirate: 3/6/9/12/15%
 
     resource_base[ RESOURCE_HEALTH ] = rating_t::interpolate( level, 0, 4253, 6373 );
     resource_base[ RESOURCE_FOCUS  ] = 100;
 
     focus_regen_per_second  = ( 24.5 / 4.0 );
-    focus_regen_per_second *= 1.0 + o -> talents.bestial_discipline * 0.50;
+    focus_regen_per_second *= 1.0 + o -> talents.bestial_discipline * 0.75;
 
     base_gcd = 1.20;
   }
@@ -509,7 +510,7 @@ struct hunter_pet_t : public pet_t
     pet_t::init_buffs();
     hunter_pet_t* p = ( hunter_pet_t* ) this -> cast_pet();
     hunter_t*     o = p -> owner -> cast_hunter();
-    buffs_bestial_wrath     = new buff_t( this, "bestial_wrath",     1, 10.0 );
+    buffs_bestial_wrath     = new buff_t( this, "bestial_wrath",     1, 15.0 );  // Triumvirate: 15s (was 10s)
     buffs_call_of_the_wild  = new buff_t( this, "call_of_the_wild",  1, 10.0 );
     buffs_culling_the_herd  = new buff_t( this, "culling_the_herd",  1, 10.0, 0.0, talents.culling_the_herd );
     buffs_frenzy            = new buff_t( this, "frenzy",            1,  8.0, 0.0, o -> talents.frenzy * 0.2 );
@@ -517,7 +518,7 @@ struct hunter_pet_t : public pet_t
     buffs_kill_command      = new buff_t( this, "kill_command",      3, 30.0 );
     buffs_monstrous_bite    = new buff_t( this, "monstrous_bite",    3, 12.0 );
     buffs_owls_focus        = new buff_t( this, "owls_focus",        1,  8.0, 0.0, talents.owls_focus * 0.15 );
-    buffs_rabid             = new buff_t( this, "rabid",             1, 20.0 );
+    buffs_rabid             = new buff_t( this, "rabid",             1, 30.0 );
     buffs_rabid_power_stack = new buff_t( this, "rabid_power_stack", 1,    0, 0.0, talents.rabid * 0.5 );   // FIXME: Probably a ppm, not flat chance
     buffs_savage_rend       = new buff_t( this, "savage_rend",       1, 30.0 );
     buffs_wolverine_bite    = new buff_t( this, "wolverine_bite",    1, 10.0, 0.0, talents.wolverine_bite );
@@ -550,8 +551,8 @@ struct hunter_pet_t : public pet_t
 
     double ap = player_t::composite_attack_power();
 
-    ap += o -> stamina() * o -> talents.hunter_vs_wild * 0.1;
-    ap += o -> composite_attack_power() * 0.22 * ( 1 + talents.wild_hunt * 0.15 );
+    ap += o -> stamina() * o -> talents.hunter_vs_wild * 0.15;  // Triumvirate: 15/30/45% (was 10/20/30%)
+    ap += o -> composite_attack_power() * 0.22 * ( 1 + talents.wild_hunt * 0.20 );
     ap += buffs_furious_howl -> value();
 
     return ap;
@@ -730,6 +731,7 @@ struct hunter_attack_t : public attack_t
     if ( p -> position == POSITION_RANGED )
     {
       base_crit += p -> talents.lethal_shots * 0.01;
+      base_crit_bonus_multiplier *= 1.0 + p -> talents.lethal_shots * 0.01;  // Triumvirate: NEW crit damage bonus component
     }
 
     base_multiplier *= 1.0 + p -> talents.improved_tracking * 0.01;
@@ -1007,10 +1009,10 @@ struct hunter_pet_attack_t : public attack_t
     // Assume happy pet
     base_multiplier *= 1.25;
 
-    base_multiplier *= 1.0 + p -> talents.spiked_collar * 0.03;
+    base_multiplier *= 1.0 + p -> talents.spiked_collar * 0.04;
     base_multiplier *= 1.0 + p -> talents.shark_attack * 0.03;
-    base_multiplier *= 1.0 + o -> talents.unleashed_fury * 0.03;
-    base_multiplier *= 1.0 + o -> talents.kindred_spirits * 0.04;
+    base_multiplier *= 1.0 + o -> talents.unleashed_fury * 0.15;
+    base_multiplier *= 1.0 + o -> talents.kindred_spirits * 0.04;  // Triumvirate: 4/8/12/16/20%
   }
 
   virtual double execute_time() SC_CONST
@@ -1084,7 +1086,7 @@ struct hunter_pet_attack_t : public attack_t
     player_multiplier *= 1.0 + p -> buffs_monstrous_bite -> stack() * 0.03;
 
     if ( p -> buffs_culling_the_herd -> up() )
-      player_multiplier *= 1.0 + ( p -> buffs_culling_the_herd -> value() * 0.01 );
+      player_multiplier *= 1.0 + ( p -> buffs_culling_the_herd -> value() * 0.02 );
 
     if ( p -> sim -> target -> health_percentage() < 35 )
       player_multiplier *= 1.0 + p -> talents.feeding_frenzy * 0.06;
@@ -1127,7 +1129,7 @@ struct pet_melee_t : public hunter_pet_attack_t
       base_multiplier   *= ( 1.0 - p -> talents.cobra_reflexes * 0.075 );
       base_execute_time *= 1.0 / ( 1.0 + p -> talents.cobra_reflexes * 0.15 );
     }
-    base_execute_time *= 1.0 / ( 1.0 + 0.04 * o -> talents.serpents_swiftness );
+    base_execute_time *= 1.0 / ( 1.0 + 0.01 * o -> talents.serpents_swiftness );
 
     if ( o -> set_bonus.tier7_2pc_melee() ) base_multiplier *= 1.05;
   }
@@ -1358,7 +1360,7 @@ struct hunter_pet_spell_t : public spell_t
 
     base_multiplier *= 1.05; // 3.1.0 change: # Cunning, Ferocity and Tenacity pets now all have +5% damage, +5% armor and +5% health bonuses.
 
-    base_multiplier *= 1.0 + p -> talents.spiked_collar * 0.03;
+    base_multiplier *= 1.0 + p -> talents.spiked_collar * 0.04;
   }
 
   virtual double cost() SC_CONST
@@ -1411,7 +1413,7 @@ struct hunter_pet_spell_t : public spell_t
     if ( o -> buffs_cobra_strikes -> up() ) player_crit += 1.0;
 
     if ( p -> buffs_culling_the_herd -> up() )
-      player_multiplier *= 1.0 + ( p -> buffs_culling_the_herd -> value() * 0.01 );
+      player_multiplier *= 1.0 + ( p -> buffs_culling_the_herd -> value() * 0.02 );
 
     if ( p -> buffs_kill_command -> up() )
     {
@@ -1697,7 +1699,7 @@ double hunter_attack_t::execute_time() SC_CONST
 
   t *= 1.0 / p -> quiver_haste;
 
-  t *= 1.0 / ( 1.0 + 0.04 * p -> talents.serpents_swiftness );
+  t *= 1.0 / ( 1.0 + 0.01 * p -> talents.serpents_swiftness );
 
   t *= 1.0 / ( 1.0 + p -> buffs_improved_aspect_of_the_hawk -> value() );
 
@@ -1718,7 +1720,7 @@ void hunter_attack_t::player_buff()
     if ( weapon && weapon -> group() == WEAPON_RANGED )
     {
       // FIXME: This should be all shots, not just weapon-based shots
-      player_multiplier *= 1.0 + p -> talents.marked_for_death * 0.01;
+      player_multiplier *= 1.0 + p -> talents.marked_for_death * 0.02;
     }
   }
 
@@ -1730,7 +1732,7 @@ void hunter_attack_t::player_buff()
   }
   if ( p -> active_sting() && p -> talents.noxious_stings )
   {
-    player_multiplier *= 1.0 + p -> talents.noxious_stings * 0.01;
+    player_multiplier *= 1.0 + p -> talents.noxious_stings * 0.02;  // Triumvirate: 2/4/6% (was 1/2/3%)
   }
   if ( p -> active_pet )
   {
@@ -1740,7 +1742,7 @@ void hunter_attack_t::player_buff()
   player_crit += p -> buffs_master_tactician -> value();
 
   if ( p -> buffs_culling_the_herd -> up() )
-    player_multiplier *= 1.0 + ( p -> buffs_culling_the_herd -> value() * 0.01 );
+    player_multiplier *= 1.0 + ( p -> buffs_culling_the_herd -> value() * 0.02 );
 
   if ( p -> buffs_tier10_2pc -> up() )
     player_multiplier *= 1.15;
@@ -1858,6 +1860,8 @@ struct aimed_shot_t : public hunter_attack_t
     };
     init_rank( ranks, 49050 );
 
+    direct_power_mod += 0.10;  // Triumvirate: NEW distinct +10% AP ratio, additive on top of rank-based power_mod
+
     weapon = &( p -> ranged_weapon );
     assert( weapon -> group() == WEAPON_RANGED );
 
@@ -1867,16 +1871,16 @@ struct aimed_shot_t : public hunter_attack_t
     cooldown = p -> get_cooldown( "aimed_multi" );
     cooldown -> duration = 10;
 
-    base_cost *= 1.0 - p -> talents.master_marksman * 0.05;
+    base_cost *= 1.0 - p -> talents.master_marksman * 0.07;
 
     base_multiplier *= 1.0 + p -> talents.barrage                      * 0.04;
-    base_multiplier *= 1.0 + p -> talents.sniper_training              * 0.02;
+    base_multiplier *= 1.0 + p -> talents.sniper_training              * 0.03;
     base_multiplier *= p -> ranged_weapon_specialization_multiplier();
 
     base_crit += p -> talents.improved_barrage * 0.04;
 
-    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.06 +
-                                          p -> talents.marked_for_death * 0.02 );
+    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.08 +
+                                          p -> talents.marked_for_death * 0.04 );
 
     add_ammunition();
     add_scope();
@@ -1973,10 +1977,10 @@ struct arcane_shot_t : public hunter_attack_t
                                p -> talents.ferocious_inspiration * 0.03 );
     base_multiplier *= p -> ranged_weapon_specialization_multiplier();
 
-    base_crit += p -> talents.survival_instincts * 0.02;
+    base_crit += p -> talents.survival_instincts * 0.04;  // Triumvirate: 4/8% (was 2/4%)
 
-    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.06 +
-                                          p -> talents.marked_for_death * 0.02 );
+    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.08 +
+                                          p -> talents.marked_for_death * 0.04 );
   }
 
   virtual double cost() SC_CONST
@@ -2061,15 +2065,18 @@ struct black_arrow_t : public hunter_attack_t
     };
     init_rank( ranks, 63672 );
 
+    base_cost *= 1.0 - p -> talents.resourcefulness * 0.22;  // Triumvirate: 22/44/66% mana cost reduction (was 20/40/60%)
+
     base_tick_time   = 3.0;
-    num_ticks        = 5;
+    num_ticks        = 6;  // Triumvirate: 18s duration (was 15s/5 ticks)
     tick_power_mod   = 0.1 / 5.0;
+    tick_may_crit    = ( p -> glyphs.explosive_trap != 0 );  // Triumvirate: NEW glyph interaction
 
     cooldown = p -> get_cooldown( "traps" );
-    cooldown -> duration = 30 - p -> talents.resourcefulness * 2;
+    cooldown -> duration = 30 - p -> talents.resourcefulness * 2;  // kept alongside the new mana cost reduction
 
-    base_multiplier *= 1.0 + p -> talents.sniper_training * 0.02;
-    base_multiplier *= 1.0 + p -> talents.tnt * 0.02;
+    base_multiplier *= 1.0 + p -> talents.sniper_training * 0.03;
+    base_multiplier *= 1.0 + p -> talents.tnt * 0.03;  // Triumvirate: 3/6/9% (was 2/4/6%)
     base_multiplier *= 1.0 + p -> talents.trap_mastery * 0.10;
   }
 
@@ -2126,7 +2133,7 @@ struct chimera_shot_t : public hunter_attack_t
     base_dd_min = 1;
     base_dd_max = 1;
     base_cost   = p -> resource_base[ RESOURCE_MANA ] * 0.12;
-    base_cost  *= 1.0 - p -> talents.master_marksman * 0.05;
+    base_cost  *= 1.0 - p -> talents.master_marksman * 0.07;
 
     normalize_weapon_speed = true;
     weapon_multiplier      = 1.25;
@@ -2135,8 +2142,8 @@ struct chimera_shot_t : public hunter_attack_t
 
     base_multiplier *= p -> ranged_weapon_specialization_multiplier();
 
-    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.06 +
-                                          p -> talents.marked_for_death * 0.02 );
+    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.08 +
+                                          p -> talents.marked_for_death * 0.04 );
 
     add_ammunition();
     add_scope();
@@ -2237,6 +2244,37 @@ struct chimera_shot_t : public hunter_attack_t
   }
 };
 
+// Explosive Shot Stack Event ===================================================
+// Triumvirate: NEW - each Explosive Shot cast now runs its own independent tick
+// chain instead of sharing the parent action's built-in ticking/current_tick
+// state. That shared state can only track one instance at a time, so recasting
+// while a previous Explosive Shot is still ticking (e.g. via a Lock and Load
+// proc) would otherwise clip the earlier cast or, worse, desync current_tick
+// vs num_ticks and hit the engine's "corrupt tick" sim-cancelling error path.
+// This keeps every cast's damage fully independent so casts can genuinely stack.
+
+struct explosive_shot_stack_event_t : public event_t
+{
+  attack_t* tick_action;
+  int ticks_remaining;
+
+  explosive_shot_stack_event_t( sim_t* sim, player_t* p, attack_t* ta, int remaining, double delta_time ) :
+      event_t( sim, p, "explosive_shot_stack_tick" ), tick_action( ta ), ticks_remaining( remaining )
+  {
+    sim -> add_event( this, delta_time );
+  }
+
+  virtual void execute()
+  {
+    tick_action -> execute();
+    ticks_remaining--;
+    if ( ticks_remaining > 0 )
+    {
+      new ( sim ) explosive_shot_stack_event_t( sim, player, tick_action, ticks_remaining, 1.0 );
+    }
+  }
+};
+
 // Explosive Shot ================================================================
 
 struct explosive_tick_t : public hunter_attack_t
@@ -2268,14 +2306,14 @@ struct explosive_tick_t : public hunter_attack_t
 
     direct_power_mod = 0.14;
 
-    base_multiplier *= 1.0 + p -> talents.sniper_training * 0.02;
+    base_multiplier *= 1.0 + p -> talents.sniper_training * 0.03;
     base_multiplier *= p -> ranged_weapon_specialization_multiplier();
 
-    base_multiplier *= 1.0 + p -> talents.tnt * 0.02;
+    base_multiplier *= 1.0 + p -> talents.tnt * 0.03;  // Triumvirate: 3/6/9% (was 2/4/6%)
 
-    base_crit += p -> talents.survival_instincts * 0.02;
+    base_crit += p -> talents.survival_instincts * 0.04;  // Triumvirate: 4/8% (was 2/4%)
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.mortal_shots * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.mortal_shots * 0.08;
 
     if ( p -> glyphs.explosive_shot )
     {
@@ -2320,8 +2358,8 @@ struct explosive_shot_t : public hunter_attack_t
     cooldown = p -> get_cooldown( "arcane_explosive" );
     cooldown -> duration = 6;
 
-    tick_zero      = true;
-    num_ticks      = 2;
+    tick_zero      = false;  // Triumvirate: ticks now self-managed, see explosive_shot_stack_event_t
+    num_ticks      = 0;      // Triumvirate: disable shared built-in dot tracking - each cast manages its own independent ticks now
     base_tick_time = 1.0;
 
     explosive_tick = new explosive_tick_t( p );
@@ -2336,11 +2374,16 @@ struct explosive_shot_t : public hunter_attack_t
     return hunter_attack_t::cost();
   }
 
-  virtual void tick()
+  virtual void execute()
   {
-    if ( sim -> debug ) log_t::output( sim, "%s ticks (%d of %d)", name(), current_tick, num_ticks );
+    hunter_attack_t::execute();
+    hunter_t* p = player -> cast_hunter();
+    p -> buffs_lock_and_load -> decrement();
+
+    // Triumvirate: NEW - fire this cast's own independent tick chain (immediate hit + 2 more at t+1, t+2)
+    // instead of relying on the shared parent action's ticking state, so multiple casts can stack.
     explosive_tick -> execute();
-    update_time( DMG_OVER_TIME );
+    new ( sim ) explosive_shot_stack_event_t( sim, player, explosive_tick, 2, 1.0 );
   }
 
   virtual void update_ready()
@@ -2348,13 +2391,6 @@ struct explosive_shot_t : public hunter_attack_t
     hunter_t* p = player -> cast_hunter();
     cooldown -> duration = ( p -> buffs_lock_and_load -> check() ? 0.0 : 6.0 );
     hunter_attack_t::update_ready();
-  }
-
-  virtual void execute()
-  {
-    hunter_attack_t::execute();
-    hunter_t* p = player -> cast_hunter();
-    p -> buffs_lock_and_load -> decrement();
   }
 
   virtual bool ready()
@@ -2382,7 +2418,7 @@ struct kill_shot_t : public hunter_attack_t
     {
       { 80, 3, 325, 325, 0, 0.07 },
       { 75, 2, 250, 250, 0, 0.07 },
-      { 71, 1, 205, 205, 0, 0.07 },
+      { 60, 1, 205, 205, 0, 0.07 },  // Triumvirate: Rank 1 available at 60 (down from 71)
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 61006 );
@@ -2402,8 +2438,8 @@ struct kill_shot_t : public hunter_attack_t
 
     base_crit += p -> talents.sniper_training * 0.05;
 
-    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.06 +
-                                          p -> talents.marked_for_death * 0.02 );
+    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.08 +
+                                          p -> talents.marked_for_death * 0.04 );
 
     add_ammunition();
     add_scope();
@@ -2469,7 +2505,7 @@ struct multi_shot_t : public hunter_attack_t
 
     base_crit += p -> talents.improved_barrage * 0.04;
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.mortal_shots * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.mortal_shots * 0.08;
 
     add_ammunition();
     add_scope();
@@ -2502,7 +2538,7 @@ struct scatter_shot_t : public hunter_attack_t
 
     base_multiplier *= p -> ranged_weapon_specialization_multiplier();
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.mortal_shots * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.mortal_shots * 0.08;
 
     add_ammunition();
     add_scope();
@@ -2591,13 +2627,15 @@ struct serpent_sting_t : public hunter_attack_t
     init_rank( ranks, 49001 );
 
     base_tick_time   = 3.0;
-    num_ticks        = p -> glyphs.serpent_sting ? 7 : 5;
+    num_ticks        = p -> glyphs.serpent_sting ? 9 : 5;  // Triumvirate: glyph now +12s (was +6s), i.e. +4 ticks not +2
+    num_ticks       += ( p -> talents.noxious_stings > 0 ) ? ( p -> talents.noxious_stings - 1 ) : 0;  // Triumvirate: NEW - +1 tick at rank 2, +2 ticks at rank 3 (kept at 3s/tick granularity)
+    num_ticks       += util_t::talent_rank( p -> talents.noxious_stings, 3, 0, 1, 2 );  // Triumvirate: NEW +2/4/6s, rounded to whole 3s ticks (0/1/2 extra ticks)
     tick_power_mod   = 0.2 / 5.0;
     base_multiplier *= 1.0 + ( p -> talents.improved_stings     * 0.1 +
                                p -> set_bonus.tier8_2pc_melee() * 0.1 );
 
     tick_may_crit = ( p -> set_bonus.tier9_2pc_melee() != 0 );
-    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots * 0.06 );
+    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots * 0.08 );
 
     observer = &( p -> active_serpent_sting );
   }
@@ -2669,7 +2707,7 @@ struct silencing_shot_t : public hunter_attack_t
 
     base_multiplier *= p -> ranged_weapon_specialization_multiplier();
 
-    base_crit_bonus_multiplier *= 1.0 + p -> talents.mortal_shots * 0.06;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.mortal_shots * 0.08;
 
     add_ammunition();
     add_scope();
@@ -2708,17 +2746,17 @@ struct steady_shot_t : public hunter_attack_t
 
     may_crit = true;
 
-    base_cost *= 1.0 - p -> talents.master_marksman * 0.05;
+    base_cost *= 1.0 - p -> talents.master_marksman * 0.07;
 
-    base_multiplier *= 1.0 + ( p -> talents.sniper_training       * 0.02 +
+    base_multiplier *= 1.0 + ( p -> talents.sniper_training       * 0.03 +
 			       p -> talents.ferocious_inspiration * 0.03 );
 
     base_multiplier *= p -> ranged_weapon_specialization_multiplier();
 
-    base_crit += p -> talents.survival_instincts * 0.02;
+    base_crit += p -> talents.survival_instincts * 0.04;  // Triumvirate: 4/8% (was 2/4%)
 
-    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.06 +
-                                          p -> talents.marked_for_death * 0.02 );
+    base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots     * 0.08 +
+                                          p -> talents.marked_for_death * 0.04 );
 
     add_ammunition();
   }
@@ -2986,6 +3024,8 @@ struct kill_command_t : public hunter_spell_t
   virtual bool ready()
   {
     hunter_t* p = player -> cast_hunter();
+
+    if ( p -> level < 60 ) return false;  // Triumvirate: level requirement
 
     if ( ! p -> active_pet )
       return false;
@@ -3374,6 +3414,7 @@ void hunter_t::init_glyphs()
     else if ( n == "bestial_wrath"               ) glyphs.bestial_wrath = 1;
     else if ( n == "chimera_shot"                ) glyphs.chimera_shot = 1;
     else if ( n == "explosive_shot"              ) glyphs.explosive_shot = 1;
+    else if ( n == "explosive_trap"              ) glyphs.explosive_trap = 1;  // Triumvirate: NEW
     else if ( n == "hunters_mark"                ) glyphs.hunters_mark = 1;
     else if ( n == "improved_aspect_of_the_hawk" ) glyphs.the_hawk = 1;
     else if ( n == "kill_shot"                   ) glyphs.kill_shot = 1;
@@ -3386,7 +3427,6 @@ void hunter_t::init_glyphs()
     else if ( n == "trueshot_aura"               ) glyphs.trueshot_aura = 1;
     // To prevent warnings....
     else if ( n == "disengage"          ) ;
-    else if ( n == "explosive_trap"     ) ;
     else if ( n == "feign_death"        ) ;
     else if ( n == "freezing_trap"      ) ;
     else if ( n == "frost_trap"         ) ;
@@ -3444,8 +3484,8 @@ void hunter_t::init_base()
   initial_spell_crit_per_intellect = rating_t::get_attribute_base( sim, level, HUNTER, race, BASE_STAT_SPELL_CRIT_PER_INT );
   initial_attack_crit_per_agility  = rating_t::get_attribute_base( sim, level, HUNTER, race, BASE_STAT_MELEE_CRIT_PER_AGI );
 
-  attribute_multiplier_initial[ ATTR_INTELLECT ] *= 1.0 + talents.combat_experience * 0.02;
-  attribute_multiplier_initial[ ATTR_AGILITY ]   *= 1.0 + talents.combat_experience * 0.02;
+  attribute_multiplier_initial[ ATTR_INTELLECT ] *= 1.0 + talents.combat_experience * 0.03;
+  attribute_multiplier_initial[ ATTR_AGILITY ]   *= 1.0 + talents.combat_experience * 0.03;
   attribute_multiplier_initial[ ATTR_AGILITY ]   *= 1.0 + talents.hunting_party * 0.01;
   attribute_multiplier_initial[ ATTR_AGILITY ]   *= 1.0 + talents.lightning_reflexes * 0.03;
   attribute_multiplier_initial[ ATTR_STAMINA ]   *= 1.0 + talents.survivalist * 0.02;
@@ -3477,10 +3517,9 @@ void hunter_t::init_buffs()
   buffs_furious_howl                = new buff_t( this, "furious_howl",                1, 20.0 );
   buffs_improved_aspect_of_the_hawk = new buff_t( this, "improved_aspect_of_the_hawk", 1, 10.0,  0.0, ( talents.improved_aspect_of_the_hawk ? 0.10 : 0.0 ) );
   buffs_improved_steady_shot        = new buff_t( this, "improved_steady_shot",        1, 10.0,  0.0, talents.improved_steady_shot * 0.05 );
-//  buffs_lock_and_load               = new buff_t( this, "lock_and_load",               2, 10.0, 22.0, talents.lock_and_load * 0.02 );
-  buffs_lock_and_load               = new buff_t( this, "lock_and_load",               2, 10.0, 22.0, talents.lock_and_load * (0.20/3.0) ); // EJ thread suggests the proc is rate is around 20%
+  buffs_lock_and_load               = new buff_t( this, "lock_and_load",               2, 10.0, 18.0, talents.lock_and_load * 0.03 ); // Triumvirate: 3/6/9% chance (was ~6.7/13.3/20%), CD 18s (was 22s)
 
-  buffs_master_tactician            = new buff_t( this, "master_tactician",            1, 10.0,  0.0, ( talents.master_tactician ? 0.10 : 0.0 ) );
+  buffs_master_tactician            = new buff_t( this, "master_tactician",            1, 15.0,  0.0, ( talents.master_tactician ? 0.10 : 0.0 ) );  // Triumvirate: 15s (was 10s)
   buffs_rapid_fire                  = new buff_t( this, "rapid_fire",                  1, 15.0 );
 
   buffs_tier10_2pc                  = new buff_t( this, "tier10_2pc",                  1, 10.0,  0.0, ( set_bonus.tier10_2pc_melee() ? 0.05 : 0 ) );
@@ -3582,7 +3621,7 @@ void hunter_t::init_unique_gear()
 	base_dd_min = 1;
 	base_dd_max = 1;
 	base_multiplier *= p -> ranged_weapon_specialization_multiplier();
-	base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots * 0.06 );
+	base_crit_bonus_multiplier *= 1.0 + ( p -> talents.mortal_shots * 0.08 );
 	add_ammunition();
 	add_scope();
       }
@@ -3818,7 +3857,7 @@ double hunter_t::composite_attack_power() SC_CONST
 
   ap += buffs_aspect_of_the_hawk -> value();
   ap += intellect() * talents.careful_aim / 3.0;
-  ap += stamina() * talents.hunter_vs_wild * 0.1;
+  ap += stamina() * talents.hunter_vs_wild * 0.15;  // Triumvirate: 15/30/45% (was 10/20/30%)
 
   ap += buffs_furious_howl -> value();
 
@@ -3886,7 +3925,7 @@ void hunter_t::regen( double periodicity )
   }
   if ( buffs_rapid_fire -> check() && talents.rapid_recuperation )
   {
-    double rr_regen = periodicity * 0.02 * talents.rapid_recuperation * resource_max[ RESOURCE_MANA ] / 3.0;
+    double rr_regen = periodicity * 0.03 * talents.rapid_recuperation * resource_max[ RESOURCE_MANA ] / 3.0;  // Triumvirate: 3/6% (was 2/4%)
 
     resource_gain( RESOURCE_MANA, rr_regen, gains_rapid_recuperation );
   }

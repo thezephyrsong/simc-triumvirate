@@ -1227,6 +1227,7 @@ void sim_t::use_optimal_buffs_and_debuffs( int value )
   overrides.ferocious_inspiration  = optimal_raid;
   overrides.flametongue_totem      = optimal_raid;
   overrides.fortitude              = optimal_raid;
+  overrides.commanding_shout       = optimal_raid;  // Triumvirate: 675 health bonus
   overrides.frost_fever            = optimal_raid;
   overrides.heart_of_the_crusader  = optimal_raid;
   overrides.hellscreams_warsong    = 0;
@@ -1516,6 +1517,7 @@ std::vector<option_t>& sim_t::get_options()
       { "override.flametongue_totem",       OPT_BOOL,   &( overrides.flametongue_totem              ) },
       { "override.focus_magic",             OPT_BOOL,   &( overrides.focus_magic                    ) },
       { "override.fortitude",               OPT_BOOL,   &( overrides.fortitude                      ) },
+      { "override.commanding_shout",        OPT_BOOL,   &( overrides.commanding_shout               ) },  // Triumvirate
       { "override.frost_fever",             OPT_BOOL,   &( overrides.frost_fever                    ) },
       { "override.heart_of_the_crusader",   OPT_BOOL,   &( overrides.heart_of_the_crusader          ) },
       { "override.horn_of_winter",          OPT_BOOL,   &( overrides.horn_of_winter                 ) },

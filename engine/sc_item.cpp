@@ -215,6 +215,33 @@ void item_t::encode_options()
 
 bool item_t::init()
 {
+
+  // Triumvirate: Null out stats for Scroll of [Stat] VII and VIII
+  // These are stripped of stat-modification values on this server
+  static const char* suppressed_scrolls[] = {
+    "scroll_of_strength_vii",  "scroll_of_strength_viii",
+    "scroll_of_agility_vii",   "scroll_of_agility_viii",
+    "scroll_of_intellect_vii", "scroll_of_intellect_viii",
+    "scroll_of_spirit_vii",    "scroll_of_spirit_viii",
+    "scroll_of_stamina_vii",   "scroll_of_stamina_viii",
+    NULL
+  };
+  for ( int si = 0; suppressed_scrolls[si] != NULL; si++ )
+  {
+    if ( ! strcmp( name(), suppressed_scrolls[si] ) )
+    {
+      // Zero all stats — item is cosmetic only on Triumvirate
+      for ( int k = 0; k < STAT_MAX; k++ ) stats.add( (stat_type) k, -stats.get( (stat_type) k ) );
+      return true;
+    }
+  }
+  // Triumvirate: High Warlord / Grand Marshal gear is cosmetic only
+  if ( strstr( name(), "high_warlord" ) || strstr( name(), "grand_marshal" ) )
+  {
+    for ( int k = 0; k < STAT_MAX; k++ ) stats.add( (stat_type) k, -stats.get( (stat_type) k ) );
+    return true;
+  }
+
   parse_options();
 
   encoded_name_str = armory_name_str;

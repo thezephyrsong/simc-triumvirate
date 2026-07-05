@@ -234,7 +234,8 @@ static void register_darkmoon_card_greatness( item_t* item )
       max_stat = stat[ i ];
     }
   }
-  action_callback_t* cb = new stat_proc_callback_t( "darkmoon_card_greatness", p, max_stat, 1, 300, 0.35, 15.0, 45.0 );
+  // Triumvirate: proc value confirmed 120 (down from retail 300) via ItemScanner tooltip
+  action_callback_t* cb = new stat_proc_callback_t( "darkmoon_card_greatness", p, max_stat, 1, 120, 0.35, 15.0, 45.0 );
 
   p -> register_tick_damage_callback( SCHOOL_ALL_MASK, cb );
   p -> register_direct_damage_callback( SCHOOL_ALL_MASK, cb );
@@ -880,7 +881,7 @@ bool unique_gear_t::get_equip_encoding( std::string&       encoding,
   else if ( name == "banner_of_victory"                   ) e = "OnAttackHit_1008AP_20%_10Dur_50Cd";
   else if ( name == "black_magic"                         ) e = "OnSpellDirectHit_250Haste_35%_10Dur_35Cd";
   else if ( name == "blood_of_the_old_god"                ) e = "OnAttackCrit_1284AP_10%_10Dur_50Cd";
-  else if ( name == "chuchus_tiny_box_of_horrors"         ) e = "OnAttackHit_258Crit_15%_10Dur_45Cd";
+  else if ( name == "chuchus_tiny_box_of_horrors"         ) e = "OnAttackHit_128Crit_15%_10Dur_45Cd";  // Triumvirate: 128 (down from retail 258)
   else if ( name == "comets_trail"                        ) e = "OnAttackHit_726Haste_10%_10Dur_45Cd";
   else if ( name == "corens_chromium_coaster"             ) e = "OnAttackCrit_1000AP_10%_10Dur_50Cd";
   else if ( name == "dark_matter"                         ) e = "OnAttackHit_612Crit_15%_10Dur_45Cd";
@@ -891,13 +892,13 @@ bool unique_gear_t::get_equip_encoding( std::string&       encoding,
   else if ( name == "eye_of_magtheridon"                  ) e = "OnSpellCastMiss_170SP_10Dur";
   else if ( name == "eye_of_the_broodmother"              ) e = "OnSpellDamage_25SP_5Stack_10Dur";
   else if ( name == "flare_of_the_heavens"                ) e = "OnSpellCast_850SP_10%_10Dur_45Cd";
-  else if ( name == "forge_ember"                         ) e = "OnSpellCastHit_512SP_10%_10Dur_45Cd";
+  else if ( name == "forge_ember"                         ) e = "OnSpellCastHit_115SP_10%_10Dur_45Cd";  // Triumvirate: 115 (down from retail 512)
   else if ( name == "fury_of_the_five_flights"            ) e = "OnAttackHit_16AP_20Stack_10Dur";
   else if ( name == "grim_toll"                           ) e = "OnAttackHit_612ArPen_15%_10Dur_45Cd";
   else if ( name == "herkuml_war_token"                   ) e = "OnAttackHit_17AP_20Stack_10Dur";
   else if ( name == "illustration_of_the_dragon_soul"     ) e = "OnSpellCast_20SP_10Stack_10Dur";
   else if ( name == "mark_of_defiance"                    ) e = "OnSpellCastHit_150Mana_15%_15Cd";
-  else if ( name == "mirror_of_truth"                     ) e = "OnAttackCrit_1000AP_10%_10Dur_50Cd";
+  else if ( name == "mirror_of_truth"                     ) e = "OnAttackCrit_333AP_10%_10Dur_50Cd";   // Triumvirate: 333 (down from retail 1000)
   else if ( name == "mithril_pocketwatch"                 ) e = "OnSpellCast_590SP_10%_10Dur_45Cd";
   else if ( name == "mjolnir_runestone"                   ) e = "OnAttackHit_665ArPen_15%_10Dur_45Cd";
   else if ( name == "muradins_spyglass"                   ) e = ( heroic ? "OnSpellDamage_20SP_10Stack_10Dur" : "OnSpellDamage_18SP_10Stack_10Dur" );
@@ -905,10 +906,10 @@ bool unique_gear_t::get_equip_encoding( std::string&       encoding,
   else if ( name == "pandoras_plea"                       ) e = "OnSpellCast_751SP_10%_10Dur_45Cd";
   else if ( name == "purified_lunar_dust"                 ) e = "OnSpellCast_304MP5_10%_15Dur_45Cd";
   else if ( name == "pyrite_infuser"                      ) e = "OnAttackCrit_1234AP_10%_10Dur_50Cd";
-  else if ( name == "quagmirrans_eye"                     ) e = "OnSpellCast_320Haste_10%_6Dur_45Cd";
+  else if ( name == "quagmirrans_eye"                     ) e = "OnSpellCast_192Haste_10%_6Dur_45Cd";  // Triumvirate: 192 (down from retail 320)
   else if ( name == "sextant_of_unstable_currents"        ) e = "OnSpellCrit_190SP_20%_15Dur_45Cd";
   else if ( name == "shiffars_nexus_horn"                 ) e = "OnSpellCrit_225SP_20%_10Dur_45Cd";
-  else if ( name == "sundial_of_the_exiled"               ) e = "OnSpellCast_590SP_10%_10Dur_45Cd";
+  else if ( name == "sundial_of_the_exiled"               ) e = "OnSpellCast_168SP_10%_10Dur_45Cd";   // Triumvirate: 168 (down from retail 590)
   else if ( name == "wrath_of_cenarius"                   ) e = "OnSpellCastHit_132SP_5%_10Dur";
 
   // Some Normal/Heroic items have same name

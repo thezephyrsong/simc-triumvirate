@@ -1,3 +1,17 @@
+
+// =========================================================================
+// Triumvirate Tier 1 Set Bonus Overhauls
+// =========================================================================
+// The following set bonuses have been reworked for Triumvirate's level-60
+// content. Item count thresholds and effect values need to be verified
+// in-game and updated here:
+//   - Rogue Tier 1 (2pc / 4pc)
+//   - Elemental Shaman Tier 1 (2pc / 4pc)
+//   - Enhancement Shaman Tier 1 (2pc / 4pc)
+//   - Holy Paladin Tier 1 (2pc / 4pc)
+//   - Shadow Priest Tier 1 (2pc / 4pc)
+// TODO: confirm effect values from server tooltips via ItemScanner.
+
 // ==========================================================================
 // Dedmonwakeen's Raid DPS/TPS Simulator.
 // Send questions to natehieter@gmail.com

@@ -205,6 +205,7 @@ struct warrior_t : public player_t
   virtual double    composite_block_value() SC_CONST;
   virtual double    composite_tank_miss( int school ) SC_CONST;
   virtual double    composite_tank_block() SC_CONST;
+  virtual double    composite_player_multiplier( int school ) SC_CONST;  // Triumvirate: Sharpened - flat global damage bonus
   virtual void      reset();
   virtual void      interrupt();
   virtual void      regen( double periodicity );
@@ -254,7 +255,8 @@ struct warrior_attack_t : public attack_t
     warrior_t* p = player -> cast_warrior();
     may_glance   = false;
     normalize_weapon_speed = true;
-    if ( special ) base_crit_bonus_multiplier *= 1.0 + p -> talents.impale * 0.10;
+    if ( special ) base_crit_bonus_multiplier *= 1.0 + p -> talents.impale * 0.20;
+    base_crit_bonus_multiplier *= 1.0 + p -> talents.cruelty * 0.01;  // Triumvirate: NEW crit damage bonus component
   }
 
   virtual void   parse_options( option_t*, const std::string& options_str );
@@ -498,7 +500,7 @@ static void trigger_rage_gain( attack_t* a, double rage_conversion_value )
 
   double rage_gain = std::min( rage_gain_avg, rage_gain_max );
 
-  if ( p -> talents.endless_rage ) rage_gain *= 1.25;
+  if ( p -> talents.endless_rage ) rage_gain *= 1.30;  // Triumvirate: 30% (was 25%)
 
   p -> resource_gain( RESOURCE_RAGE, rage_gain, w -> slot == SLOT_OFF_HAND ? p -> gains_oh_attack : p -> gains_mh_attack );
 }
@@ -526,7 +528,7 @@ static void trigger_sword_specialization( attack_t* a )
   if ( p -> cooldowns_sword_specialization -> remains() > 0 )
     return;
 
-  if ( p -> rng_sword_specialization -> roll( 0.02 * p -> talents.sword_specialization ) )
+  if ( p -> rng_sword_specialization -> roll( 0.04 * p -> talents.sword_specialization ) )
   {
     if ( a -> sim -> log )
       log_t::output( a -> sim, "%s gains one extra attack through %s",
@@ -598,7 +600,7 @@ static void trigger_trauma( action_t* a )
 
   target_t* t = a -> sim -> target;
 
-  double value = p -> talents.trauma * 15;
+  double value = p -> talents.trauma * 25;  // Triumvirate: 25/50% (was 15/30%)
 
   if( value >= t -> debuffs.trauma -> current_value )
   {
@@ -731,7 +733,7 @@ void warrior_attack_t::player_buff()
       if ( weapon -> type == WEAPON_MACE ||
            weapon -> type == WEAPON_MACE_2H )
       {
-        player_penetration += p -> talents.mace_specialization * 0.03;
+        player_penetration += p -> talents.mace_specialization * 0.06;  // Triumvirate: 6/12/18/24/30% (was 3/6/9/12/15%)
       }
     }
     if ( p -> talents.poleaxe_specialization )
@@ -740,20 +742,20 @@ void warrior_attack_t::player_buff()
            weapon -> type == WEAPON_AXE    ||
            weapon -> type == WEAPON_POLEARM )
       {
-        player_crit            += p -> talents.poleaxe_specialization * 0.01;
-        player_crit_multiplier *= 1 + p -> talents.poleaxe_specialization * 0.01;
+        player_crit            += p -> talents.poleaxe_specialization * 0.02;  // Triumvirate: doubled, 2/4/6/8/10%
+        player_crit_multiplier *= 1 + p -> talents.poleaxe_specialization * 0.02;  // Triumvirate: doubled, 2/4/6/8/10%
       }
     }
     if ( p -> talents.dual_wield_specialization )
     {
       if ( weapon -> slot == SLOT_OFF_HAND )
       {
-        player_multiplier *= 1.0 + p -> talents.dual_wield_specialization * 0.05;
+        player_multiplier *= 1.0 + p -> talents.dual_wield_specialization * 0.07;  // Triumvirate: 7/14/21/28/35% (was 5/10/15/20/25%)
       }
     }
     if ( weapon -> group() == WEAPON_2H )
     {
-      player_multiplier *= 1.0 + p -> talents.twohanded_weapon_specialization * 0.02;
+      player_multiplier *= 1.0 + p -> talents.twohanded_weapon_specialization * 0.03;  // Triumvirate: 3/6/9% (was 2/4/6%)
     }
     if ( weapon -> group() == WEAPON_1H )
     {
@@ -1141,7 +1143,7 @@ struct bloodthirst_t : public warrior_attack_t
 
     may_crit = true;
     base_cost = 20;
-    base_multiplier *= 1 + p -> talents.unending_fury * 0.02;
+    base_multiplier *= 1 + p -> talents.unending_fury * 0.03;  // Triumvirate: 3/6/9/12/15% (was 2/4/6/8/10%)
     direct_power_mod = 0.50;
     cooldown -> duration = 4.0;
 
@@ -1291,12 +1293,9 @@ struct revenge_t : public warrior_attack_t
     may_crit = true;
     direct_power_mod = 0.31;
     cooldown -> duration = 5.0;
-    base_multiplier  *= 1 + p -> talents.improved_revenge * 0.3;
-    if ( p -> talents.unrelenting_assault )
-    {
-      base_multiplier *= 1 + p -> talents.unrelenting_assault * 0.1;
-      cooldown -> duration -= ( p -> talents.unrelenting_assault * 2 );
-    }
+    base_multiplier  *= 1 + p -> talents.improved_revenge * 0.12;  // Triumvirate: 12/24% (down from 15/30%)
+    cooldown -> duration -= p -> talents.improved_revenge * 2.0;  // Triumvirate: NEW - 2/4 sec CD reduction
+    if ( p -> talents.improved_revenge ) aoe = true;  // Triumvirate: NEW - strikes an additional target (approximated as AoE, consistent with how Whirlwind/Thunder Clap/Bladestorm model multi-target here)
 
     stancemask = STANCE_DEFENSE;
   }
@@ -1363,11 +1362,12 @@ struct shield_slam_t : public warrior_attack_t
 
     static rank_t ranks[] =
     {
-      { 80, 8, 990, 1040, 0, 20 },
-      { 75, 7, 837,  879, 0, 20 },
-      { 70, 6, 549,  577, 0, 20 },
-      { 66, 5, 499,  523, 0, 20 },
-      { 60, 4, 447,  469, 0, 20 },
+      // Triumvirate: base damage reduced by 10% from retail values
+      { 80, 8, 891,  936, 0, 20 },  // was 990, 1040
+      { 75, 7, 753,  791, 0, 20 },  // was 837,  879
+      { 70, 6, 494,  519, 0, 20 },  // was 549,  577
+      { 66, 5, 449,  471, 0, 20 },  // was 499,  523
+      { 60, 4, 402,  422, 0, 20 },  // was 447,  469
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 47488 );
@@ -1378,10 +1378,10 @@ struct shield_slam_t : public warrior_attack_t
     may_crit = true;
 
     direct_power_mod = 0.0;
-    base_multiplier *= 1 + ( 0.05 * p -> talents.gag_order +
+    base_multiplier *= 1 + ( 0.10 * p -> talents.gag_order +
 			     0.10 * p -> set_bonus.tier7_2pc_tank() );
 
-    base_crit += 0.05 * p -> talents.critical_block;
+    base_crit += 0.07 * p -> talents.critical_block;  // Triumvirate: 7/14/21%: +7/14/21% Shield Slam crit via Critical Block (0.07);
 
     cooldown -> duration = 6.0;
   }
@@ -1542,10 +1542,11 @@ struct execute_t : public warrior_attack_t
     if ( p -> buffs_sudden_death -> up() )
     {
       double current_rage = p -> resource_current[ RESOURCE_RAGE ];
+      double rage_floor    = 7.0 * p -> talents.sudden_death;  // Triumvirate: 7/14/21 (was flat 10, not rank-scaled)
 
-      if ( current_rage < 10 )
+      if ( current_rage < rage_floor )
       {
-        p -> resource_gain( RESOURCE_RAGE, 10.0 - current_rage, p -> gains_sudden_death );
+        p -> resource_gain( RESOURCE_RAGE, rage_floor - current_rage, p -> gains_sudden_death );
       }
     }
   }
@@ -1643,7 +1644,7 @@ struct overpower_t : public warrior_attack_t
 
     base_cost        = 5.0;
     base_crit       += p -> talents.improved_overpower * 0.25;
-    base_multiplier *= 1.0 + p -> talents.unrelenting_assault * 0.1;
+    base_multiplier *= 1.0 + p -> talents.unrelenting_assault * 0.15;  // Triumvirate: 15/30% (was 10/20%)
 
     cooldown -> duration = 5.0 - p -> talents.unrelenting_assault * 2.0;
 
@@ -1715,7 +1716,7 @@ struct rend_t : public warrior_attack_t
 
     normalize_weapon_speed = false;
 
-    stancemask = STANCE_BATTLE | STANCE_DEFENSE;
+    stancemask = STANCE_BATTLE | STANCE_DEFENSE | STANCE_BERSERKER;  // Triumvirate: usable in all stances
 
 
   }
@@ -1777,7 +1778,7 @@ struct slam_t : public warrior_attack_t
 
     may_crit = true;
     base_execute_time  = 1.5 - p -> talents.improved_slam * 0.5;
-    base_multiplier   *= 1 + p -> talents.unending_fury * 0.02 + ( p -> set_bonus.tier7_2pc_melee() ? 0.10 : 0.0 );
+    base_multiplier   *= 1 + p -> talents.unending_fury * 0.03 + ( p -> set_bonus.tier7_2pc_melee() ? 0.10 : 0.0 );
 
     if ( player -> set_bonus.tier9_4pc_melee() ) base_crit += 0.05;
   }
@@ -1856,7 +1857,7 @@ struct whirlwind_t : public warrior_attack_t
     aoe = true;
     may_crit = true;
     base_cost = 25;
-    base_multiplier *= 1 + p -> talents.improved_whirlwind * 0.10 + p -> talents.unending_fury * 0.02;
+    base_multiplier *= 1 + p -> talents.improved_whirlwind * 0.15 + p -> talents.unending_fury * 0.03;  // Triumvirate: IWW 15/30% (was 10/20%), UF 3/6/9/12/15% (was 2/4/6/8/10%)
 
     cooldown -> duration = 10.0 - ( p -> glyphs.whirlwind ? 2 : 0 );
 
@@ -2426,9 +2427,9 @@ void warrior_t::init_base()
   base_defense = level * 5;
   base_miss    = 0.05;
   base_dodge   = 0.03664 + 0.01 * talents.anticipation;
-  base_parry   = 0.05 + 0.01 * talents.deflection;
+  base_parry   = 0.05;  // Triumvirate: Deflection reworked into Sharpened - no longer grants parry
   base_block   = 0.05 + 0.01 * talents.shield_specialization;
-  initial_armor_multiplier *= 1.0 + 0.02 * talents.toughness;
+  initial_armor_multiplier *= 1.0 + 0.03 * talents.toughness;
   initial_dodge_per_agility = 0.0001180;
   initial_armor_per_agility = 2.0;
 
@@ -2437,7 +2438,7 @@ void warrior_t::init_base()
   diminished_dodge_capi = 1.0 / 0.88129021;
   diminished_parry_capi = 1.0 / 0.47003525;
 
-  attribute_multiplier_initial[ ATTR_STRENGTH ]   *= 1 + talents.strength_of_arms * 0.02 + talents.vitality * 0.02;
+  attribute_multiplier_initial[ ATTR_STRENGTH ]   *= 1 + talents.strength_of_arms * 0.02 + talents.vitality * 0.03;  // Triumvirate: Vitality 3/6/9% (was 2/4/6%)
   attribute_multiplier_initial[ ATTR_STAMINA  ]   *= 1 + talents.strength_of_arms * 0.02 + talents.vitality * 0.03;
 
   health_per_stamina = 10;
@@ -2445,6 +2446,17 @@ void warrior_t::init_base()
   base_gcd = 1.5;
 
   if ( tank == -1 && primary_tree() == TREE_PROTECTION ) tank = 1;
+}
+
+// warrior_t::composite_player_multiplier ====================================
+// Triumvirate: Sharpened (replaces Deflection) - flat 1/2/3/4/5% global damage bonus,
+// applied to all outgoing damage regardless of school.
+
+double warrior_t::composite_player_multiplier( int school ) SC_CONST
+{
+  double m = player_t::composite_player_multiplier( school );
+  m *= 1.0 + talents.deflection * 0.01;
+  return m;
 }
 
 // warrior_t::init_scaling ====================================================
@@ -2474,7 +2486,7 @@ void warrior_t::init_buffs()
   buffs_battle_stance             = new buff_t( this, "battle_stance"    );
   buffs_berserker_stance          = new buff_t( this, "berserker_stance" );
   buffs_bloodrage                 = new buff_t( this, "bloodrage",                 1, 10.0 );
-  buffs_bloodsurge                = new buff_t( this, "bloodsurge",                2,  5.0,   0, util_t::talent_rank( talents.bloodsurge, 3, 0.07, 0.13, 0.20 ) );
+  buffs_bloodsurge                = new buff_t( this, "bloodsurge",                2,  5.0,   0, util_t::talent_rank( talents.bloodsurge, 3, 0.08, 0.16, 0.24 ) );
   buffs_death_wish                = new buff_t( this, "death_wish",                1, 30.0,   0, talents.death_wish );
   buffs_defensive_stance          = new buff_t( this, "defensive_stance" );
   buffs_enrage                    = new buff_t( this, "enrage",                    1, 12.0,   0, talents.enrage ? 0.30 : 0.00 );
@@ -2484,9 +2496,9 @@ void warrior_t::init_buffs()
   buffs_recklessness              = new buff_t( this, "recklessness",              3, 12.0 );
   buffs_revenge                   = new buff_t( this, "revenge",                   1 );
   buffs_shield_block              = new buff_t( this, "shield_block",              1, 10.0 );
-  buffs_sudden_death              = new buff_t( this, "sudden_death",              2, 10.0,   0, talents.sudden_death * 0.03 );
+  buffs_sudden_death              = new buff_t( this, "sudden_death",              2, 10.0,   0, talents.sudden_death * 0.04 );
   buffs_sword_and_board           = new buff_t( this, "sword_and_board",           1,  5.0,   0, talents.sword_and_board * 0.10 );
-  buffs_taste_for_blood           = new buff_t( this, "taste_for_blood",           1,  9.0, 6.0, talents.taste_for_blood / 3.0 );
+  buffs_taste_for_blood           = new buff_t( this, "taste_for_blood",           2, 12.0, 6.0, talents.taste_for_blood / 3.0 );  // Triumvirate: 2 charges (was 1), 12s (was 9s)
   buffs_wrecking_crew             = new buff_t( this, "wrecking_crew",             1, 12.0,   0, talents.wrecking_crew );
   buffs_tier7_4pc_melee           = new buff_t( this, "tier7_4pc_melee",           1, 30.0,   0, set_bonus.tier7_4pc_melee() * 0.10 );
   buffs_tier10_2pc_melee          = new buff_t( this, "tier10_2pc_melee",          1, 10.0,   0, set_bonus.tier10_2pc_melee() * 0.02 );
@@ -2746,7 +2758,10 @@ double warrior_t::composite_tank_block() SC_CONST
 {
   double b = player_t::composite_tank_block();
   if ( buffs_shield_block -> up() ) b *= 2.0;
-  if ( buffs_glyph_of_blocking -> up() ) b *= 1.10;
+  if ( buffs_glyph_of_blocking -> up() ) b *= 1.15;  // Triumvirate: 15% (was 10%)
+  // Triumvirate: Critical Block 22/44/66% double-block proc chance (up from 20/40/60%)
+  // Note: double-block simulation not fully modelled in this simc build;
+  // the 22% per-point rate is used where Critical Block proc checks exist.
   return b;
 }
 
@@ -2757,7 +2772,7 @@ double warrior_t::composite_block_value() SC_CONST
   double bv = player_t::composite_block_value();
   if ( talents.shield_mastery )
   {
-    bv *= 1.0 + 0.15 * talents.shield_mastery;
+    bv *= 1.0 + talents.shield_mastery * 0.17;  // Triumvirate: 17/34% (up from 15/30%)
   }
   if ( buffs_shield_block -> up() ) bv *= 2.0;
   return bv;
@@ -2832,7 +2847,7 @@ int warrior_t::target_swing()
     {
       if ( rng_shield_specialization -> roll( 0.20 * talents.shield_specialization ) )
       {
-	resource_gain( RESOURCE_RAGE, 5.0, gains_shield_specialization );
+	resource_gain( RESOURCE_RAGE, 10.0, gains_shield_specialization );  // Triumvirate: 10 (was 5)
       }
     }
     if ( talents.improved_defensive_stance && active_stance == STANCE_DEFENSE )
@@ -2859,7 +2874,7 @@ int warrior_t::target_swing()
       };
 
       if ( ! active_damage_shield ) active_damage_shield = new damage_shield_t( this );
-      active_damage_shield -> base_dd_adder = composite_block_value() * 0.10 * talents.damage_shield;
+      active_damage_shield -> base_dd_adder = composite_block_value() * 0.15 * talents.damage_shield;  // Triumvirate: 15/30% (was 10/20%)
       active_damage_shield -> execute();
     }
   }

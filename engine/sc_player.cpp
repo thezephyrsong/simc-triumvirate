@@ -839,6 +839,12 @@ void player_t::init_resources( bool force )
           // ICC buff.
           resource_initial[ i ] *= 1.30;
         }
+
+        // Triumvirate: Commanding Shout flat health bonus (675, down from retail 1080)
+        if ( sim -> overrides.commanding_shout )
+        {
+          resource_initial[ i ] += 675;
+        }
       }
     }
     resource_current[ i ] = resource_max[ i ] = resource_initial[ i ];

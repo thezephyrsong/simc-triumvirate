@@ -962,6 +962,7 @@ struct sim_t
     int flametongue_totem;
     int focus_magic;
     int fortitude;
+    int commanding_shout;  // Triumvirate: flat 675 health bonus (down from retail 1080)
     int frost_fever;
     int heart_of_the_crusader;
     int hellscreams_warsong;
