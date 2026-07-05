@@ -4681,12 +4681,7 @@ void death_knight_t::init_buffs()
   struct bloodworms_buff_t : public buff_t
   {
     bloodworms_buff_t( death_knight_t* p ) :
-<<<<<<< Updated upstream
-        // Triumvirate: up from 0.03
-        buff_t( p, "bloodworms", 1, 19.99, 20.01, p -> talents.bloodworms * 0.04 ) {}
-=======
         buff_t( p, "bloodworms", 1, 19.99, 20.01, p -> talents.bloodworms * 0.04 ) {}  // Triumvirate: up from 0.03
->>>>>>> Stashed changes
     virtual void start( int stacks, double value )
     {
       buff_t::start( stacks, value );
@@ -4889,7 +4884,7 @@ std::vector<talent_translation_t>& death_knight_t::get_talent_list()
 {
   if ( talent_list.empty() )
   {
-    static talent_translation_t translation_table[] =
+    static talent_translation_t translation_table[][MAX_TALENT_TREES] =
     {
       { {  1, 2, &( talents.butchery                         ) }, {  1, 3, &( talents.improved_icy_touch      ) }, {  1, 2, &( talents.vicious_strikes          ) } },
       { {  2, 3, &( talents.subversion                       ) }, {  2, 2, &( talents.runic_power_mastery     ) }, {  2, 3, &( talents.virulence                ) } },
@@ -4911,20 +4906,12 @@ std::vector<talent_translation_t>& death_knight_t::get_talent_list()
       { { 18, 3, &( talents.bloodworms                       ) }, { 18, 4, &( talents.rime                    ) }, { 18, 3, &( talents.magic_supression         ) } },
       { { 19, 1, &( talents.hysteria                         ) }, { 19, 3, &( talents.chilblains              ) }, { 19, 3, &( talents.reaping                  ) } },
       { { 20, 2, &( talents.improved_blood_presence          ) }, { 20, 1, &( talents.hungering_cold          ) }, { 20, 1, &( talents.master_of_ghouls         ) } },
-<<<<<<< Updated upstream
-      { { 21, 2, &( talents.improved_strikes                 ) }, { 21, 2, &( talents.improved_frost_presence ) }, { 21, 5, &( talents.desolation                ) } },
-      { { 22, 3, &( talents.sudden_doom                      ) }, { 22, 3, &( talents.threat_of_thassarian    ) }, { 22, 1, &( talents.anti_magic_zone          ) } },
-      { { 23, 1, &( talents.vampiric_blood                    ) }, { 23, 3, &( talents.blood_of_the_north      ) }, { 23, 2, &( talents.improved_unholy_presence ) } },
-      { { 24, 3, &( talents.will_of_the_necropolis           ) }, { 24, 1, &( talents.unbreakable_armor       ) }, { 24, 1, &( talents.ghoul_frenzy             ) } },
-      { { 25, 1, &( talents.heart_strike                     ) }, { 25, 3, &( talents.acclimation              ) }, { 25, 3, &( talents.crypt_fever              ) } },
-=======
       { { 21, 2, &( talents.improved_strikes                 ) }, { 21, 2, &( talents.improved_frost_presence  ) }, { 21, 5, &( talents.desolation               ) } },  // Triumvirate: Improved Strikes
       { { 22, 3, &( talents.sudden_doom                      ) }, { 22, 3, &( talents.threat_of_thassarian    ) }, { 22, 1, &( talents.anti_magic_zone          ) } },
       { { 23, 1, &( talents.vampiric_blood                   ) }, { 23, 3, &( talents.blood_of_the_north      ) }, { 23, 2, &( talents.improved_unholy_presence ) } },
       { { 24, 3, &( talents.will_of_the_necropolis           ) }, { 24, 1, &( talents.unbreakable_armor       ) }, { 24, 1, &( talents.ghoul_frenzy             ) } },
       // Triumvirate: Will of the Necropolis's Stamina/Parry bonus is still not wired up anywhere (see lines ~251-252, ~5032-5033) - flagged separately, not touched here.
       { { 25, 1, &( talents.heart_strike                     ) }, { 25, 3, &( talents.acclimation             ) }, { 25, 3, &( talents.crypt_fever              ) } },
->>>>>>> Stashed changes
       { { 26, 3, &( talents.might_of_mograine                ) }, { 26, 1, &( talents.frost_strike            ) }, { 26, 1, &( talents.bone_shield              ) } },
       { { 27, 5, &( talents.blood_gorged                     ) }, { 27, 3, &( talents.guile_of_gorefiend      ) }, { 27, 3, &( talents.wandering_plague          ) } },
       { { 28, 1, &( talents.dancing_rune_weapon              ) }, { 28, 5, &( talents.tundra_stalker          ) }, { 28, 3, &( talents.ebon_plaguebringer        ) } },
@@ -4938,8 +4925,6 @@ std::vector<talent_translation_t>& death_knight_t::get_talent_list()
   }
   return talent_list;
 }
-
-} // ANONYMOUS NAMESPACE
 
 // death_knight_t::get_options ================================================
 
