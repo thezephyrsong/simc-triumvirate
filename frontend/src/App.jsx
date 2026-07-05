@@ -72,59 +72,27 @@ const SPEC_PRESETS = {
   "Custom":                { targetLevel: 63, scaleOnly: "" },
 };
 
-// Parses out active spell rows dynamically from the raw console buffer lines
+// Defensive textual log parser to build out active spell data arrays
 const parseSpellBreakdown = (rawLog) => {
-  if (!rawLog) return [];
-  const lines = rawLog.split("\n");
+  if (!rawLog || typeof rawLog !== "string") return [];
   const spells = [];
+  const lines = rawLog.split("\n");
   
-  for (let line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    
-    // Skip framework definitions, headers, or lines lacking percent signs
-    if (/^(name|total|player|constant|options|simulation|metadata|actions|abilities)/i.test(trimmed) || trimmed.startsWith("-") || trimmed.startsWith("=")) {
-      continue;
-    }
-    
-    const pctMatch = trimmed.match(/([0-9\.]+)%/);
-    if (!pctMatch) continue;
-    const percentage = parseFloat(pctMatch[1]);
-    
-    let dps = 0;
-    let name = "";
-    
-    // Explicit label scanner check (e.g. DPS=4231.2 or DPS: 4231.2)
-    const labelMatch = trimmed.match(/^([a-zA-Z0-9_:\-\s]+?)\s+.*?\bDPS[=:]\s*([0-9\.]+)/i);
-    if (labelMatch) {
-      name = labelMatch[1].trim();
-      dps = parseFloat(labelMatch[2]);
-    } else {
-      // Direct space token scanner check
-      const tokens = trimmed.split(/\s+/);
-      if (tokens.length >= 3) {
-        let nameParts = [];
-        let i = 0;
-        while (i < tokens.length && isNaN(tokens[i]) && !tokens[i].includes("%")) {
-          nameParts.push(tokens[i]);
-          i++;
-        }
-        name = nameParts.join(" ").replace(/[:=]/g, "").trim();
-        
-        const numbers = tokens.slice(i).filter(t => !isNaN(t) && !t.includes("%"));
-        if (numbers.length > 0) {
-          dps = parseFloat(numbers[numbers.length - 1]);
-        }
-      }
-    }
-    
-    if (name && dps > 0 && percentage > 0 && name.toLowerCase() !== "total") {
-      if (!spells.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+  // Safely captures line entries matching: spell_name DPS=1234.5 (10.2%) or spell_name DPS: 1234.5 10.2%
+  const regex = /^\s*([a-zA-Z0-9_:\-\(\)\s]+?)\s+DPS[=:]\s*([0-9\.]+)\s+.*?([0-9\.]+)%/i;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(regex);
+    if (match) {
+      const name = match[1].trim();
+      const dps = parseFloat(match[2]);
+      const percentage = parseFloat(match[3]);
+      
+      if (name && dps > 0 && percentage > 0 && name.toLowerCase() !== "total" && name.toLowerCase() !== "player") {
         spells.push({ name, dps, percentage });
       }
     }
   }
-  
   return spells.sort((a, b) => b.dps - a.dps);
 };
 
@@ -193,7 +161,7 @@ function DetailsMeter({ spells }) {
       borderRadius: 8,
       padding: 16,
       fontFamily: "var(--mono), monospace",
-      marginBottom: 20
+      marginBottom: 24
     }}>
       <h3 style={{ 
         fontSize: 13, 
@@ -228,7 +196,7 @@ function DetailsMeter({ spells }) {
               color: "#c9d1d9",
               border: "1px solid rgba(255,255,255,0.02)"
             }}>
-              {/* Proportional horizontal display meter tint */}
+              {/* Dynamic width absolute background progress fills */}
               <div style={{
                 position: "absolute",
                 top: 0,
@@ -241,7 +209,7 @@ function DetailsMeter({ spells }) {
                 transition: "width 0.4s ease-out"
               }} />
 
-              {/* Text metadata values */}
+              {/* Explicit alignment label text row metadata values */}
               <span style={{ zIndex: 2, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ color: "var(--text-dim)", fontSize: 11 }}>{index + 1}.</span>
                 {formatSpellName(spell.name)}
@@ -351,7 +319,7 @@ export default function App() {
     wakeBackend();
   }, []);
 
-  // Use hook memory parameters to fetch clean, ordered actions out of console text output
+  // Filter spell tracking logs cleanly when standard run configurations complete
   const spellBreakdown = useMemo(() => {
     if (!result) return [];
     return parseSpellBreakdown(result.rawOutput || result.stdout || "");
@@ -612,7 +580,7 @@ export default function App() {
             {result.dps || "0"} <span style={{ fontSize: 14, color: "var(--text-dim)", fontWeight: 400 }}>Simulated DPS</span>
           </div>
 
-          {/* Details Damage Breakdown Panel Injection */}
+          {/* Details Spell breakdown panel displays here */}
           <DetailsMeter spells={spellBreakdown} />
           
           {calculateWeights && result.weights && (
