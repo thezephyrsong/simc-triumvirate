@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 
 // Set this to your Render/Railway backend URL after deploying.
 // During local dev, set VITE_API_URL in a .env.local file.
@@ -72,6 +72,62 @@ const SPEC_PRESETS = {
   "Custom":                { targetLevel: 63, scaleOnly: "" },
 };
 
+// Parses out active spell rows dynamically from the raw console buffer lines
+const parseSpellBreakdown = (rawLog) => {
+  if (!rawLog) return [];
+  const lines = rawLog.split("\n");
+  const spells = [];
+  
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    // Skip framework definitions, headers, or lines lacking percent signs
+    if (/^(name|total|player|constant|options|simulation|metadata|actions|abilities)/i.test(trimmed) || trimmed.startsWith("-") || trimmed.startsWith("=")) {
+      continue;
+    }
+    
+    const pctMatch = trimmed.match(/([0-9\.]+)%/);
+    if (!pctMatch) continue;
+    const percentage = parseFloat(pctMatch[1]);
+    
+    let dps = 0;
+    let name = "";
+    
+    // Explicit label scanner check (e.g. DPS=4231.2 or DPS: 4231.2)
+    const labelMatch = trimmed.match(/^([a-zA-Z0-9_:\-\s]+?)\s+.*?\bDPS[=:]\s*([0-9\.]+)/i);
+    if (labelMatch) {
+      name = labelMatch[1].trim();
+      dps = parseFloat(labelMatch[2]);
+    } else {
+      // Direct space token scanner check
+      const tokens = trimmed.split(/\s+/);
+      if (tokens.length >= 3) {
+        let nameParts = [];
+        let i = 0;
+        while (i < tokens.length && isNaN(tokens[i]) && !tokens[i].includes("%")) {
+          nameParts.push(tokens[i]);
+          i++;
+        }
+        name = nameParts.join(" ").replace(/[:=]/g, "").trim();
+        
+        const numbers = tokens.slice(i).filter(t => !isNaN(t) && !t.includes("%"));
+        if (numbers.length > 0) {
+          dps = parseFloat(numbers[numbers.length - 1]);
+        }
+      }
+    }
+    
+    if (name && dps > 0 && percentage > 0 && name.toLowerCase() !== "total") {
+      if (!spells.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+        spells.push({ name, dps, percentage });
+      }
+    }
+  }
+  
+  return spells.sort((a, b) => b.dps - a.dps);
+};
+
 // Helper function to format weights into a valid Pawn import string mapping short keys to Pawn fields
 function generatePawnString(specName, weights) {
   const pawnStatMapping = {
@@ -112,6 +168,97 @@ function Spinner() {
         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
       </svg>
       Simulating...
+    </div>
+  );
+}
+
+function DetailsMeter({ spells }) {
+  if (!spells || spells.length === 0) return null;
+
+  const maxDps = spells[0].dps;
+
+  const formatSpellName = (name) => {
+    return name
+      .replace(/_/g, " ")
+      .replace(/\bmh\b/gi, "(Main Hand)")
+      .replace(/\boh\b/gi, "(Off Hand)")
+      .replace(/\b([a-z])/g, (char) => char.toUpperCase());
+  };
+
+  return (
+    <div style={{
+      marginTop: 20,
+      background: "#161b22",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: 16,
+      fontFamily: "var(--mono), monospace",
+      marginBottom: 20
+    }}>
+      <h3 style={{ 
+        fontSize: 13, 
+        color: "var(--text-dim)", 
+        margin: "0 0 14px 0", 
+        textTransform: "uppercase", 
+        letterSpacing: "0.05em",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        fontWeight: 600
+      }}>
+        📊 Spell Damage Breakdown (Details! Mode)
+      </h3>
+      
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {spells.map((spell, index) => {
+          const barWidth = maxDps > 0 ? (spell.dps / maxDps) * 100 : 0;
+
+          return (
+            <div key={index} style={{
+              position: "relative",
+              height: 28,
+              background: "#21262d",
+              borderRadius: 4,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              padding: "0 12px",
+              justifyContent: "space-between",
+              fontSize: 13,
+              color: "#c9d1d9",
+              border: "1px solid rgba(255,255,255,0.02)"
+            }}>
+              {/* Proportional horizontal display meter tint */}
+              <div style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: `${barWidth}%`,
+                background: "linear-gradient(90deg, #1f6feb 0%, #388bfd 100%)",
+                opacity: 0.25,
+                zIndex: 1,
+                transition: "width 0.4s ease-out"
+              }} />
+
+              {/* Text metadata values */}
+              <span style={{ zIndex: 2, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ color: "var(--text-dim)", fontSize: 11 }}>{index + 1}.</span>
+                {formatSpellName(spell.name)}
+              </span>
+              
+              <span style={{ zIndex: 2 }}>
+                <strong style={{ color: "var(--amber)" }}>
+                  {Math.round(spell.dps).toLocaleString()}
+                </strong>{" "}
+                <span style={{ color: "var(--text-dim)", fontSize: 11 }}>
+                  ({spell.percentage.toFixed(1)}%)
+                </span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -173,15 +320,15 @@ export default function App() {
   const [calculateWeights, setCalculateWeights] = useState(true);
   
   // Extended configuration parameters
-  const [fightLength,     setFightLength]     = useState(300);
-  const [varyLength,      setVaryLength]      = useState(0);
-  const [fightStyle,      setFightStyle]      = useState("Patchwerk");
-  const [playerSkill,     setPlayerSkill]     = useState(100);
+  const [fightLength,      setFightLength]     = useState(300);
+  const [varyLength,       setVaryLength]      = useState(0);
+  const [fightStyle,       setFightStyle]      = useState("Patchwerk");
+  const [playerSkill,      setPlayerSkill]     = useState(100);
 
-  const [result,          setResult]          = useState(null);
-  const [loading,         setLoading]         = useState(false);
-  const [error,           setError]           = useState(null);
-  const [showRaw,         setShowRaw]         = useState(false);
+  const [result,           setResult]          = useState(null);
+  const [loading,          setLoading]         = useState(false);
+  const [error,            setError]           = useState(null);
+  const [showRaw,          setShowRaw]         = useState(false);
 
   // State to track background cold-starts: "waking", "ready", or "failed"
   const [backendStatus, setBackendStatus] = useState("waking");
@@ -204,6 +351,12 @@ export default function App() {
     wakeBackend();
   }, []);
 
+  // Use hook memory parameters to fetch clean, ordered actions out of console text output
+  const spellBreakdown = useMemo(() => {
+    if (!result) return [];
+    return parseSpellBreakdown(result.rawOutput || result.stdout || "");
+  }, [result]);
+
   // Apply spec preset
   const handleSpecChange = useCallback((s) => {
     setSpec(s);
@@ -216,6 +369,7 @@ export default function App() {
       setError("Paste your TopFit export first.");
       return;
     }
+    loading = true; // wait sync updates
     setLoading(true);
     setError(null);
     setResult(null);
@@ -458,6 +612,9 @@ export default function App() {
           <div style={{ fontSize: 32, fontWeight: 800, color: "var(--green)", marginBottom: 20 }}>
             {result.dps || "0"} <span style={{ fontSize: 14, color: "var(--text-dim)", fontWeight: 400 }}>Simulated DPS</span>
           </div>
+
+          {/* Details Damage Breakdown Panel Injection */}
+          <DetailsMeter spells={spellBreakdown} />
           
           {calculateWeights && result.weights && (
             <div style={{ marginTop: 20 }}>
