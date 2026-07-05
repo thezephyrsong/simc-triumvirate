@@ -4886,7 +4886,7 @@ std::vector<talent_translation_t>& death_knight_t::get_talent_list()
 {
   if ( talent_list.empty() )
   {
-    static const talent_translation_t translation_table[] =
+    static talent_translation_t translation_table[] =
     {
       { {  1, 2, &( talents.butchery                         ) }, {  1, 3, &( talents.improved_icy_touch      ) }, {  1, 2, &( talents.vicious_strikes          ) } },
       { {  2, 3, &( talents.subversion                       ) }, {  2, 2, &( talents.runic_power_mastery     ) }, {  2, 3, &( talents.virulence                ) } },
@@ -4926,6 +4926,8 @@ std::vector<talent_translation_t>& death_knight_t::get_talent_list()
   }
   return talent_list;
 }
+
+} // ANONYMOUS NAMESPACE
 
 // death_knight_t::get_options ================================================
 
