@@ -4662,7 +4662,8 @@ void death_knight_t::init_buffs()
   struct bloodworms_buff_t : public buff_t
   {
     bloodworms_buff_t( death_knight_t* p ) :
-        buff_t( p, "bloodworms", 1, 19.99, 20.01, p -> talents.bloodworms * 0.04  // Triumvirate: up from 0.03 ) {}
+        // Triumvirate: up from 0.03
+        buff_t( p, "bloodworms", 1, 19.99, 20.01, p -> talents.bloodworms * 0.04 ) {}
     virtual void start( int stacks, double value )
     {
       buff_t::start( stacks, value );
