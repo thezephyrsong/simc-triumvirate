@@ -72,27 +72,42 @@ const SPEC_PRESETS = {
   "Custom":                { targetLevel: 63, scaleOnly: "" },
 };
 
-// Defensive textual log parser to build out active spell data arrays
+// Hyper-robust text summary parser to accurately build out spell arrays from standard console log structures
 const parseSpellBreakdown = (rawLog) => {
   if (!rawLog || typeof rawLog !== "string") return [];
   const spells = [];
   const lines = rawLog.split("\n");
   
-  // Safely captures line entries matching: spell_name DPS=1234.5 (10.2%) or spell_name DPS: 1234.5 10.2%
-  const regex = /^\s*([a-zA-Z0-9_:\-\(\)\s]+?)\s+DPS[=:]\s*([0-9\.]+)\s+.*?([0-9\.]+)%/i;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const match = lines[i].match(regex);
-    if (match) {
-      const name = match[1].trim();
-      const dps = parseFloat(match[2]);
-      const percentage = parseFloat(match[3]);
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    // Ignore layout definitions or full text headers
+    if (/^(name|total|player|constant|options|simulation|metadata|actions|abilities|spells|target|baseline)/i.test(trimmed) || 
+        trimmed.startsWith("-") || trimmed.startsWith("=")) {
+      continue;
+    }
+    
+    // Target entries containing a percentage indicator and a numeric DPS block
+    const pctMatch = trimmed.match(/([0-9\.]+)%/);
+    const dpsMatch = trimmed.match(/DPS[=:\s]+([0-9\.]+)/i);
+    
+    if (pctMatch && dpsMatch) {
+      const percentage = parseFloat(pctMatch[1]);
+      const dps = parseFloat(dpsMatch[1]);
       
-      if (name && dps > 0 && percentage > 0 && name.toLowerCase() !== "total" && name.toLowerCase() !== "player") {
-        spells.push({ name, dps, percentage });
+      // Cleanly isolate the ability string name by stripping metric numbers down
+      let namePart = trimmed.split(/DPS|Count|Vort|:\s*=|[=\s]\s*[0-9\.]+/i)[0].trim();
+      namePart = namePart.replace(/[:\-–—\s]+$/, "").trim(); // Clear trailing syntax dividers
+      
+      if (namePart && dps > 0 && percentage > 0 && !/^(total|player)$/i.test(namePart)) {
+        if (!spells.some(s => s.name.toLowerCase() === namePart.toLowerCase())) {
+          spells.push({ name: namePart, dps, percentage });
+        }
       }
     }
   }
+  
   return spells.sort((a, b) => b.dps - a.dps);
 };
 
