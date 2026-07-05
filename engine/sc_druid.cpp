@@ -1878,8 +1878,8 @@ struct mangle_bear_t : public druid_bear_attack_t
     may_crit = true;
     base_cost -= p -> talents.ferocity;
 
-    base_multiplier *= 1.0 + ( p -> talents.savage_fury * 0.12 );  // Triumvirate: 12/24% +
-			       p -> glyphs.mangle       * 0.10
+    base_multiplier *= 1.0 + ( p -> talents.savage_fury * 0.12 +  // Triumvirate: 12/24%
+			       p -> glyphs.mangle       * 0.10 );
 
     cooldown = p -> get_cooldown( "mangle_bear" );
     cooldown -> duration = 6.0 - p -> talents.improved_mangle * 0.5;
@@ -1935,7 +1935,7 @@ struct maul_t : public druid_bear_attack_t
     normalize_weapon_speed = false;
 
     base_cost -= p -> talents.ferocity;
-    base_multiplier *= 1.0 + p -> talents.savage_fury * 0.12  // Triumvirate: 12/24%;
+    base_multiplier *= 1.0 + p -> talents.savage_fury * 0.12;  // Triumvirate: 12/24%
 
     p -> active_mauls.push_back( this );
   }
@@ -2068,6 +2068,7 @@ double druid_spell_t::haste() SC_CONST
   druid_t* p = player -> cast_druid();
   double h = spell_t::haste();
   if ( p -> talents.celestial_focus ) h *= 1.0 / ( 1.0 + p -> talents.celestial_focus * 0.01 );
+  if ( p -> talents.gift_of_the_earthmother ) h *= 1.0 / ( 1.0 + p -> talents.gift_of_the_earthmother * 0.03 );  // Triumvirate: 3/6/9%
   if ( p -> buffs_natures_grace -> up() )
   {
     h *= 1.0 / ( 1.0 + 0.20 );
@@ -2529,8 +2530,8 @@ struct moonfire_t : public druid_spell_t
                            + util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.07 )  // Triumvirate: 7/14%
                            + util_t::talent_rank( p -> talents.genesis,           5, 0.01 ) );
 
-    double multiplier_dd = ( util_t::talent_rank( p -> talents.moonfury, 3, 0.05, 0.10, 0.15 )   // Triumvirate: 5/10/15%
-                           + util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.07 ) )  // Triumvirate: 7/14%
+    double multiplier_dd = ( util_t::talent_rank( p -> talents.moonfury, 3, 0.05, 0.10, 0.15 ) +  // Triumvirate: 5/10/15%
+                           util_t::talent_rank( p -> talents.improved_moonfire, 2, 0.07 ) );  // Triumvirate: 7/14%
 
     if ( p -> glyphs.moonfire )
     {
@@ -3528,14 +3529,11 @@ void druid_t::init_glyphs()
     else if ( n == "regrowth"              ) ;
     else if ( n == "survival_instincts"    ) ;
     else if ( n == "swiftmend"             ) ;
-    else if ( n == "the_wild"              ) ;
     else if ( n == "thorns"                ) glyphs.thorns   = 1;  // Triumvirate
     else if ( n == "the_wild"              ) glyphs.the_wild = 1;  // Triumvirate
-    else if ( n == "wrath"                 ) glyphs.wrath    = 1;  // Triumvirate
     else if ( n == "unburdened_rebirth"    ) ;
     else if ( n == "wild_growth"           ) ;
-    else if ( n == "wrath"          ) glyphs.wrath = 1;  // Triumvirate: flat 5% Wrath dmg
-    \1 ;
+    else if ( n == "wrath"                 ) glyphs.wrath    = 1;  // Triumvirate: flat 5% Wrath dmg
     else if ( ! sim -> parent )
     {
       sim -> errorf( "Player %s has unrecognized glyph %s\n", name(), n.c_str() );
@@ -3579,9 +3577,7 @@ void druid_t::init_base()
 
   base_spell_crit += talents.natural_perfection * 0.02;  // Triumvirate: 2/4/6%
   // Triumvirate: Gift of Nature 3/6/9/12/15% healing output (applied to heal spells)
-  // Gift of the Earthmother 3/6/9% haste - applied as casting speed bonus
-  if ( talents.gift_of_the_earthmother )
-    base_spell_speed *= 1.0 - talents.gift_of_the_earthmother * 0.03;
+  // Gift of the Earthmother 3/6/9% haste - applied in druid_spell_t::haste()
 
   for ( int i=0; i < ATTRIBUTE_MAX; i++ )
   {
@@ -4011,7 +4007,7 @@ double druid_t::composite_spell_hit() SC_CONST
 {
   double hit = player_t::composite_spell_hit();
 
-  hit += talents.balance_of_power * 0.03  // Triumvirate: 3/6%;
+  hit += talents.balance_of_power * 0.03;  // Triumvirate: 3/6%
 
   return floor( hit * 10000.0 ) / 10000.0;
 }

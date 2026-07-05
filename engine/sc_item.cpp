@@ -231,14 +231,14 @@ bool item_t::init()
     if ( ! strcmp( name(), suppressed_scrolls[si] ) )
     {
       // Zero all stats — item is cosmetic only on Triumvirate
-      for ( int k = 0; k < STAT_MAX; k++ ) stats.add( (stat_type) k, -stats.get( (stat_type) k ) );
+      for ( int k = 0; k < STAT_MAX; k++ ) stats.set_stat( k, 0.0 );
       return true;
     }
   }
   // Triumvirate: High Warlord / Grand Marshal gear is cosmetic only
   if ( strstr( name(), "high_warlord" ) || strstr( name(), "grand_marshal" ) )
   {
-    for ( int k = 0; k < STAT_MAX; k++ ) stats.add( (stat_type) k, -stats.get( (stat_type) k ) );
+    for ( int k = 0; k < STAT_MAX; k++ ) stats.set_stat( k, 0.0 );
     return true;
   }
 

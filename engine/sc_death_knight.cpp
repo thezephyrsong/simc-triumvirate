@@ -545,7 +545,7 @@ struct dancing_rune_weapon_pet_t : public pet_t
       base_spell_power_multiplier  = 0;
       base_attack_power_multiplier = 1;
 
-      base_crit_bonus_multiplier *= 1.0 + o -> talents.might_of_mograine * 1.70  // Triumvirate: +70% armor;
+      base_crit_bonus_multiplier *= 1.0 + o -> talents.might_of_mograine * 1.70;  // Triumvirate: +70% armor
       base_multiplier *= 1 + o -> talents.bloody_strikes * 0.10;
 
       direct_power_mod  = 0.06;
@@ -1879,7 +1879,7 @@ void death_knight_attack_t::player_buff()
 
     // Fix Me! Does the same apply as for RoR?
     if ( ! proc && sim -> target -> debuffs.frost_fever -> up() )
-      player_multiplier *= 1.0 + p -> talents.tundra_stalker * 0.04  // Triumvirate: 4/8/12/16/20%;
+      player_multiplier *= 1.0 + p -> talents.tundra_stalker * 0.04;  // Triumvirate: 4/8/12/16/20%
 
     // Annihilation only applies to abilities
     player_crit += p -> talents.annihilation * 0.01;
@@ -1912,7 +1912,7 @@ void death_knight_attack_t::player_buff()
     }
     else if ( weapon -> group() == WEAPON_2H )
     {
-      player_multiplier *= 1.0 + p -> talents.two_handed_weapon_specialization * 0.03  // Triumvirate: 3/6%;
+      player_multiplier *= 1.0 + p -> talents.two_handed_weapon_specialization * 0.03;  // Triumvirate: 3/6%
     }
   }
 
@@ -2042,7 +2042,7 @@ void death_knight_spell_t::player_buff()
 
   // Fix Me! Does the same apply as for RoR?
   if ( ! proc && sim -> target -> debuffs.frost_fever -> up() )
-    player_multiplier *= 1.0 + p -> talents.tundra_stalker * 0.04  // Triumvirate: 4/8/12/16/20%;
+    player_multiplier *= 1.0 + p -> talents.tundra_stalker * 0.04;  // Triumvirate: 4/8/12/16/20%
 
   if ( school == SCHOOL_PHYSICAL )
   {
@@ -2227,9 +2227,10 @@ struct blood_boil_t : public death_knight_spell_t
     if ( p -> glyphs.blood_boil )
     {
       base_multiplier  *= 0.85;
-      resource_current  = RESOURCE_RUNIC;
+      resource          = RESOURCE_RUNIC;
       base_cost         = 40;
     }
+  }
 
   virtual void execute()
   {
@@ -2785,7 +2786,7 @@ struct death_strike_t : public death_knight_attack_t
     {
       int stacks      = p -> buffs_thundering_strikes -> stack();
       player_crit    += stacks * 0.02;
-      crit_multiplier += stacks * 0.04;
+      player_crit_bonus_multiplier += stacks * 0.04;
     }
   }
 };
@@ -3074,7 +3075,7 @@ struct heart_strike_t : public death_knight_attack_t
     {
       int stacks      = p -> buffs_thundering_strikes -> stack();
       player_crit    += stacks * 0.02;
-      crit_multiplier += stacks * 0.04;
+      player_crit_bonus_multiplier += stacks * 0.04;
     }
   }
 
@@ -3349,7 +3350,7 @@ struct icy_touch_t : public death_knight_spell_t
     base_multiplier  *= 1 + 0.05 * p -> talents.improved_icy_touch;
     cooldown -> duration          = 0.0;
 
-    base_crit += p -> talents.rime * 0.06  // Triumvirate: 6/12/18%;
+    base_crit += p -> talents.rime * 0.06;  // Triumvirate: 6/12/18%
   }
 
   virtual void execute()
@@ -3432,7 +3433,7 @@ struct obliterate_t : public death_knight_attack_t
 
     base_multiplier *= 1.0 + p -> set_bonus.tier10_2pc_melee() * 0.1;
     base_crit += p -> talents.subversion * 0.03;
-    base_crit += p -> talents.rime * 0.06  // Triumvirate: 6/12/18%;
+    base_crit += p -> talents.rime * 0.06;  // Triumvirate: 6/12/18%
     base_crit_bonus_multiplier *= 1.0 + p -> talents.guile_of_gorefiend * 0.15;
     convert_runes = p -> talents.death_rune_mastery / 3;
   }
@@ -3612,7 +3613,7 @@ struct plague_strike_t : public death_knight_attack_t
       {
         int stacks      = p -> buffs_thundering_strikes -> stack();
         player_crit    += stacks * 0.02;
-        crit_multiplier += stacks * 0.04;
+        player_crit_bonus_multiplier += stacks * 0.04;
       }
     }
   }
@@ -4210,6 +4211,24 @@ void death_knight_t::init()
       ghoul -> type = PLAYER_GUARDIAN;
     }
   }
+
+  // Triumvirate: Improved Strikes proc - register callback for melee hits
+  struct improved_strikes_callback_t : public action_callback_t
+  {
+    improved_strikes_callback_t( death_knight_t* p ) : action_callback_t( p -> sim, p ) {}
+    virtual void trigger( action_t* /* a */ )
+    {
+      death_knight_t* p = listener -> cast_death_knight();
+      if ( p -> talents.improved_strikes )
+      {
+        // 50/100% chance per talent point to gain Thundering Strikes stack
+        if ( p -> sim -> roll( p -> talents.improved_strikes * 0.50 ) )
+          p -> buffs_thundering_strikes -> trigger( 1 );
+      }
+    }
+  };
+  register_attack_result_callback( RESULT_HIT_MASK, new improved_strikes_callback_t( this ) );
+  register_attack_result_callback( RESULT_CRIT_MASK, new improved_strikes_callback_t( this ) );
 }
 
 // death_knight_t::init_race =================================================
@@ -4258,7 +4277,7 @@ void death_knight_t::init_base()
   base_attack_crit                 = rating_t::get_attribute_base( sim, level, DEATH_KNIGHT, race, BASE_STAT_MELEE_CRIT );
   initial_attack_crit_per_agility  = rating_t::get_attribute_base( sim, level, DEATH_KNIGHT, race, BASE_STAT_MELEE_CRIT_PER_AGI );
 
-  double str_mult = ( talents.veteran_of_the_third_war * 1.70  // Triumvirate: +70% armor +
+  double str_mult = ( talents.veteran_of_the_third_war * 1.70 +  // Triumvirate: +70% armor
                       talents.abominations_might       * 0.01 +
                       talents.ravenous_dead            * 0.01 +
                       talents.endless_winter           * 0.02 );
@@ -4649,10 +4668,10 @@ void death_knight_t::init_buffs()
   buffs_deathchill          = new buff_t( this, "deathchill",          1,                                30.0 );
   buffs_icy_talons          = new buff_t( this, "icy_talons",          1,                                20.0,  0.0, talents.icy_talons );
   buffs_killing_machine     = new buff_t( this, "killing_machine",     1,                                30.0,  0.0, 0 ); // PPM based!
-  buffs_rime                = new buff_t( this, "rime",                1,                                30.0,  0.0, talents.rime * 0.06  // Triumvirate: 6/12/18% );
+  buffs_rime                = new buff_t( this, "rime",                1,                                30.0,  0.0, talents.rime * 0.06 );  // Triumvirate: 6/12/18%
   buffs_scent_of_blood      = new buff_t( this, "scent_of_blood",      talents.scent_of_blood,            0.0, 10.0, talents.scent_of_blood ? 0.15 : 0.00 );
   buffs_tier10_4pc_melee    = new buff_t( this, "tier10_4pc_melee",    1,                                15.0,  0.0, set_bonus.tier10_4pc_melee() );
-  buffs_unbreakable_armor   = new buff_t( this, "unbreakable_armor",   1,                                21.70  // Triumvirate: +70% armor, 60.0, talents.unbreakable_armor );
+  buffs_unbreakable_armor   = new buff_t( this, "unbreakable_armor",   1,                                21.70, 60.0, talents.unbreakable_armor );  // Triumvirate: +70% armor
 
   // stat_buff_t( sim, player, name, stat, amount, max_stack, duration, cooldown, proc_chance, quiet )
   buffs_sigil_hanged_man   = new stat_buff_t( this, "sigil_of_the_hanged_man", STAT_STRENGTH ,  73, 3, 15.0,   0, sigils.hanged_man );
@@ -4662,8 +4681,12 @@ void death_knight_t::init_buffs()
   struct bloodworms_buff_t : public buff_t
   {
     bloodworms_buff_t( death_knight_t* p ) :
+<<<<<<< Updated upstream
         // Triumvirate: up from 0.03
         buff_t( p, "bloodworms", 1, 19.99, 20.01, p -> talents.bloodworms * 0.04 ) {}
+=======
+        buff_t( p, "bloodworms", 1, 19.99, 20.01, p -> talents.bloodworms * 0.04 ) {}  // Triumvirate: up from 0.03
+>>>>>>> Stashed changes
     virtual void start( int stacks, double value )
     {
       buff_t::start( stacks, value );
@@ -4836,26 +4859,6 @@ double death_knight_t::composite_player_multiplier( int school ) SC_CONST
     m *= 1.0 + buffs_thassarians_revenge -> stack() * 0.01;
 
   return m;
-
-
-  // Triumvirate: Improved Strikes proc - register callback for melee hits
-  struct improved_strikes_callback_t : public action_callback_t
-  {
-    improved_strikes_callback_t( death_knight_t* p ) : action_callback_t( p -> sim, p ) {}
-    virtual void trigger( action_t* a, void* call_data )
-    {
-      death_knight_t* p = listener -> cast_death_knight();
-      if ( p -> talents.improved_strikes )
-      {
-        // 50/100% chance per talent point to gain Thundering Strikes stack
-        if ( p -> sim -> roll( p -> talents.improved_strikes * 0.50 ) )
-          p -> buffs_thundering_strikes -> trigger( 1 );
-      }
-    }
-  };
-  register_attack_callback( RESULT_HIT_MASK, new improved_strikes_callback_t( this ) );
-  register_attack_callback( RESULT_CRIT_MASK, new improved_strikes_callback_t( this ) );
-
 }
 
 void death_knight_t::regen( double periodicity )
@@ -4908,11 +4911,20 @@ std::vector<talent_translation_t>& death_knight_t::get_talent_list()
       { { 18, 3, &( talents.bloodworms                       ) }, { 18, 4, &( talents.rime                    ) }, { 18, 3, &( talents.magic_supression         ) } },
       { { 19, 1, &( talents.hysteria                         ) }, { 19, 3, &( talents.chilblains              ) }, { 19, 3, &( talents.reaping                  ) } },
       { { 20, 2, &( talents.improved_blood_presence          ) }, { 20, 1, &( talents.hungering_cold          ) }, { 20, 1, &( talents.master_of_ghouls         ) } },
+<<<<<<< Updated upstream
       { { 21, 2, &( talents.improved_strikes                 ) }, { 21, 2, &( talents.improved_frost_presence ) }, { 21, 5, &( talents.desolation                ) } },
       { { 22, 3, &( talents.sudden_doom                      ) }, { 22, 3, &( talents.threat_of_thassarian    ) }, { 22, 1, &( talents.anti_magic_zone          ) } },
       { { 23, 1, &( talents.vampiric_blood                    ) }, { 23, 3, &( talents.blood_of_the_north      ) }, { 23, 2, &( talents.improved_unholy_presence ) } },
       { { 24, 3, &( talents.will_of_the_necropolis           ) }, { 24, 1, &( talents.unbreakable_armor       ) }, { 24, 1, &( talents.ghoul_frenzy             ) } },
       { { 25, 1, &( talents.heart_strike                     ) }, { 25, 3, &( talents.acclimation              ) }, { 25, 3, &( talents.crypt_fever              ) } },
+=======
+      { { 21, 2, &( talents.improved_strikes                 ) }, { 21, 2, &( talents.improved_frost_presence  ) }, { 21, 5, &( talents.desolation               ) } },  // Triumvirate: Improved Strikes
+      { { 22, 3, &( talents.sudden_doom                      ) }, { 22, 3, &( talents.threat_of_thassarian    ) }, { 22, 1, &( talents.anti_magic_zone          ) } },
+      { { 23, 1, &( talents.vampiric_blood                   ) }, { 23, 3, &( talents.blood_of_the_north      ) }, { 23, 2, &( talents.improved_unholy_presence ) } },
+      { { 24, 3, &( talents.will_of_the_necropolis           ) }, { 24, 1, &( talents.unbreakable_armor       ) }, { 24, 1, &( talents.ghoul_frenzy             ) } },
+      // Triumvirate: Will of the Necropolis's Stamina/Parry bonus is still not wired up anywhere (see lines ~251-252, ~5032-5033) - flagged separately, not touched here.
+      { { 25, 1, &( talents.heart_strike                     ) }, { 25, 3, &( talents.acclimation             ) }, { 25, 3, &( talents.crypt_fever              ) } },
+>>>>>>> Stashed changes
       { { 26, 3, &( talents.might_of_mograine                ) }, { 26, 1, &( talents.frost_strike            ) }, { 26, 1, &( talents.bone_shield              ) } },
       { { 27, 5, &( talents.blood_gorged                     ) }, { 27, 3, &( talents.guile_of_gorefiend      ) }, { 27, 3, &( talents.wandering_plague          ) } },
       { { 28, 1, &( talents.dancing_rune_weapon              ) }, { 28, 5, &( talents.tundra_stalker          ) }, { 28, 3, &( talents.ebon_plaguebringer        ) } },

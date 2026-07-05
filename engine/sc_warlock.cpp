@@ -2120,7 +2120,7 @@ struct drain_soul_t : public warlock_spell_t
     base_cost        *= 1.0 - p -> talents.suppression * 0.02;
     base_multiplier  *= 1.0 + p -> talents.shadow_mastery * 0.03;
 
-    health_multiplier = ( rank -> level >= 52  // Triumvirate: R1=52 ) ? 1 : 0;
+    health_multiplier = ( rank -> level >= 52 ) ? 1 : 0;  // Triumvirate: R1=52
 
     observer = &( p -> active_drain_soul );
   }
