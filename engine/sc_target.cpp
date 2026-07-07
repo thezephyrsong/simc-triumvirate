@@ -12,7 +12,7 @@
 // target_t::target_t =======================================================
 
 target_t::target_t( sim_t* s ) :
-    sim( s ), name_str( "Fluffy Pillow" ), race( RACE_HUMANOID ), level( 83 ),
+    sim( s ), name_str( "Fluffy Pillow" ), race( RACE_HUMANOID ), level( 63 ),  // Triumvirate: was 83 (retail default), now matches level-60-cap raid content
     initial_armor( -1 ), armor( 0 ), block_value( 100 ), 
     attack_speed( 2.0 ), attack_damage( 2000 ), weapon_skill( 0 ),
     fixed_health( 0 ), initial_health( 0 ), current_health( 0 ), total_dmg( 0 ),
@@ -150,11 +150,16 @@ void target_t::init()
   {
     switch ( level )
     {
+    // Triumvirate: level 60-63 raid boss armor (classic-era values, e.g. Molten Core/BWL/Onyxia ~3009-4662, most commonly ~3731)
+    case 60: initial_armor = 3731; break;
+    case 61: initial_armor = 3843; break;
+    case 62: initial_armor = 3955; break;
+    case 63: initial_armor = 4067; break;
     case 80: initial_armor = 9729;  break;
     case 81: initial_armor = 10034; break;
     case 82: initial_armor = 10338; break;
     case 83: initial_armor = 10643; break;
-    default: initial_armor = 10643;
+    default: initial_armor = ( level <= 70 ) ? 3731 : 10643;  // Triumvirate: don't apply level-83 armor to a level-60-cap target
     }
   }
 
