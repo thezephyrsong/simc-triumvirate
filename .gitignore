@@ -6,3 +6,4 @@ backend/.env
 *.a
 engine/simc
 simc
+.vs/
