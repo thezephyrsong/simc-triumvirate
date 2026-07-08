@@ -340,6 +340,34 @@ export default function App() {
     return parseSpellBreakdown(result.rawOutput || result.stdout || "");
   }, [result]);
 
+  // ─── NEW: Robust Client-Side Total DPS Parser ────────────────────────────
+  const displayedDps = useMemo(() => {
+    if (!result) return "0";
+    const rawText = result.rawOutput || result.stdout || "";
+    const lines = rawText.split("\n");
+    
+    for (let i = 0; i < lines.length; i++) {
+      // Look explicitly for the block identifying your character sheet
+      if (lines[i].trim().startsWith("Player:")) {
+        // Inspect the next 2 rows for the core engine DPS statement
+        for (let j = 1; j <= 2; j++) {
+          if (i + j < lines.length) {
+            const match = lines[i + j].trim().match(/DPS:\s*([0-9.]+)/i);
+            if (match) {
+              return parseFloat(match[1]).toLocaleString(undefined, { 
+                minimumFractionDigits: 1, 
+                maximumFractionDigits: 1 
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback to the backend value if the regex fails to find the line
+    return result.dps || "0";
+  }, [result]);
+
   // Apply spec preset
   const handleSpecChange = useCallback((s) => {
     setSpec(s);
@@ -592,7 +620,7 @@ export default function App() {
           <h2 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 16px 0" }}>Analysis Complete</h2>
           
           <div style={{ fontSize: 32, fontWeight: 800, color: "var(--green)", marginBottom: 20 }}>
-            {result.dps || "0"} <span style={{ fontSize: 14, color: "var(--text-dim)", fontWeight: 400 }}>Simulated DPS</span>
+            {displayedDps} <span style={{ fontSize: 14, color: "var(--text-dim)", fontWeight: 400 }}>Simulated DPS</span>
           </div>
 
           {/* Details Spell breakdown panel displays here */}

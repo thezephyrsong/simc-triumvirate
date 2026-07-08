@@ -272,237 +272,240 @@ struct shaman_spell_t : public spell_t
 // ==========================================================================
 // Pet Spirit Wolf
 // ==========================================================================
-
 struct spirit_wolf_pet_t : public pet_t
 {
-  struct melee_t : public attack_t
-  {
-    melee_t( player_t* player ) :
-        attack_t( "wolf_melee", player )
+    struct melee_t : public attack_t
     {
-      weapon = &( player -> main_hand_weapon );
-      base_execute_time = weapon -> swing_time;
-      base_dd_min = base_dd_max = 1;
-      background = true;
-      repeating = true;
-      may_crit = true;
+        melee_t(player_t* player) :
+            attack_t("wolf_melee", player)
+        {
+            weapon = &(player->main_hand_weapon);
+            base_execute_time = weapon->swing_time;
+            base_dd_min = base_dd_max = 1;
+            background = true;
+            repeating = true;
+            may_crit = true;
 
-      pet_t* p = player -> cast_pet();
+            pet_t* p = player->cast_pet();
 
-      // Orc Command Racial
-      if ( p -> owner -> race == RACE_ORC )
-      {
-        base_multiplier *= 1.05;
-      }
+            // Orc Command Racial
+            if (p->owner->race == RACE_ORC)
+            {
+                base_multiplier *= 1.05;
+            }
 
-      // There are actually two wolves.....
-      base_multiplier *= 2.0;
-    }
-  };
+            // There are actually two wolves.....
+            base_multiplier *= 2.0;
+        }
+    };
 
-  melee_t* melee;
+    melee_t* melee;
 
-  spirit_wolf_pet_t( sim_t* sim, player_t* owner ) :
-      pet_t( sim, owner, "spirit_wolf" ), melee( 0 )
-  {
-    main_hand_weapon.type       = WEAPON_BEAST;
-    main_hand_weapon.min_dmg    = 310;
-    main_hand_weapon.max_dmg    = 310;
-    main_hand_weapon.damage     = ( main_hand_weapon.min_dmg + main_hand_weapon.max_dmg ) / 2;
-    main_hand_weapon.swing_time = 1.5;
-  }
-  virtual void init_base()
-  {
-    pet_t::init_base();
-
-    attribute_base[ ATTR_STRENGTH  ] = 331;
-    attribute_base[ ATTR_AGILITY   ] = 113;
-    attribute_base[ ATTR_STAMINA   ] = 361;
-    attribute_base[ ATTR_INTELLECT ] = 65;
-    attribute_base[ ATTR_SPIRIT    ] = 109;
-
-    base_attack_power = -20;
-    initial_attack_power_per_strength = 2.0;
-
-    melee = new melee_t( this );
-
-    // ====================================================================
-    // INJECT DUAL WIELD SPEC TALENT INHERITANCE (SAFE & ISOLATED)
-    // ====================================================================
-    shaman_t* master = owner->cast_shaman();
-    if (master && master->talents.dual_wield_specialization)
+    spirit_wolf_pet_t(sim_t* sim, player_t* owner) :
+        pet_t(sim, owner, "spirit_wolf"), melee(0)
     {
-        // Calculate the 3% flat hit modifier per talent point
-        double talent_hit = master->talents.dual_wield_specialization * 0.03;
-
-        this->attack_hit += talent_hit; // Corrects physical swings (wolf_melee)
-        this->spell_hit += talent_hit; // Precautionary in case of spell utility hooks
+        main_hand_weapon.type = WEAPON_BEAST;
+        main_hand_weapon.min_dmg = 310;
+        main_hand_weapon.max_dmg = 310;
+        main_hand_weapon.damage = (main_hand_weapon.min_dmg + main_hand_weapon.max_dmg) / 2;
+        main_hand_weapon.swing_time = 1.5;
     }
-  }
-  virtual double composite_attack_power() SC_CONST
-  {
-    shaman_t* o = owner -> cast_shaman();
-    double ap = pet_t::composite_attack_power();
-    ap += ( o -> glyphs.feral_spirit ? 0.61 : 0.31 ) * o -> composite_attack_power_multiplier() * o -> composite_attack_power();
-    return ap;
-  }
-  virtual void summon( double duration=0 )
-  {
-    pet_t::summon( duration );
-    melee -> execute(); // Kick-off repeating attack
-  }
+
+    virtual void init_base()
+    {
+        pet_t::init_base();
+
+        attribute_base[ATTR_STRENGTH] = 331;
+        attribute_base[ATTR_AGILITY] = 113;
+        attribute_base[ATTR_STAMINA] = 361;
+        attribute_base[ATTR_INTELLECT] = 65;
+        attribute_base[ATTR_SPIRIT] = 109;
+
+        base_attack_power = -20;
+        initial_attack_power_per_strength = 2.0;
+
+        melee = new melee_t(this);
+    } // <-- Closed init_base() properly here
+
+    // Now recalculate stands on its own as a proper struct member
+    virtual void recalculate()
+    {
+        // 1. Force the engine to do its normal background pet stat inheritance first
+        pet_t::recalculate();
+
+        // 2. Permanently re-inject the talent hit so it survives scale factor wipes
+        shaman_t* master = owner->cast_shaman();
+        if (master && master->talents.dual_wield_specialization)
+        {
+            double talent_hit = master->talents.dual_wield_specialization * 0.03;
+            this->attack_hit += talent_hit;
+            this->spell_hit += talent_hit;
+        }
+    }
+
+    virtual double composite_attack_power() SC_CONST
+    {
+        shaman_t* o = owner->cast_shaman();
+        double ap = pet_t::composite_attack_power();
+        ap += (o->glyphs.feral_spirit ? 0.61 : 0.31) * o->composite_attack_power_multiplier() * o->composite_attack_power();
+        return ap;
+    }
+
+    virtual void summon(double duration = 0)
+    {
+        pet_t::summon(duration);
+        melee->execute(); // Kick-off repeating attack
+    }
 };
 
 // ==========================================================================
 // Pet Fire Elemental
 // ==========================================================================
-
 struct fire_elemental_pet_t : public pet_t
 {
-  struct travel_t : public action_t
-  {
-    travel_t( player_t* player ) : action_t( ACTION_OTHER, "travel", player ) {}
-    virtual void execute() { player -> distance = 1; }
-    virtual double execute_time() SC_CONST { return ( player -> distance / 10.0 ); }
-    virtual bool ready() { return ( player -> distance > 1 ); }
-  };
-
-  struct fire_shield_t : public spell_t
-  {
-    fire_shield_t( player_t* player ) :
-      spell_t( "fire_shield", player, RESOURCE_MANA, SCHOOL_FIRE )
+    struct travel_t : public action_t
     {
-      aoe = true;
-      background = true;
-      repeating = true;
-      may_crit = true;
-      base_execute_time = 3.0;
-      base_dd_min = base_dd_max = 96;
-      direct_power_mod = 0.015;
-
-      id = 12470;
+        travel_t(player_t* player) : action_t(ACTION_OTHER, "travel", player) {}
+        virtual void execute() { player->distance = 1; }
+        virtual double execute_time() SC_CONST { return (player->distance / 10.0); }
+        virtual bool ready() { return (player->distance > 1); }
     };
-    virtual double total_multiplier() SC_CONST { return ( player -> distance > 1 ) ? 0.0 : spell_t::total_multiplier(); }
-  };
 
-  struct fire_nova_t : public spell_t
-  {
-    fire_nova_t( player_t* player ) :
-      spell_t( "fire_nova", player, RESOURCE_MANA, SCHOOL_FIRE )
+    struct fire_shield_t : public spell_t
     {
-      aoe = true;
-      may_crit = true;
-      base_cost = 207;
-      base_execute_time = 2.5; // Really 2.0sec, but there appears to be a 0.5sec lag following.
-      base_dd_min = 960;
-      base_dd_max = 1000;
-      direct_power_mod = 0.50;
+        fire_shield_t(player_t* player) :
+            spell_t("fire_shield", player, RESOURCE_MANA, SCHOOL_FIRE)
+        {
+            aoe = true;
+            background = true;
+            repeating = true;
+            may_crit = true;
+            base_execute_time = 3.0;
+            base_dd_min = base_dd_max = 96;
+            direct_power_mod = 0.015;
+
+            id = 12470;
+        };
+        virtual double total_multiplier() SC_CONST { return (player->distance > 1) ? 0.0 : spell_t::total_multiplier(); }
     };
-  };
 
-  struct fire_blast_t : public spell_t
-  {
-    fire_blast_t( player_t* player ) :
-      spell_t( "fire_blast", player, RESOURCE_MANA, SCHOOL_FIRE )
+    struct fire_nova_t : public spell_t
     {
-      may_crit = true;
-      base_cost = 276;
-      base_execute_time = 0;
-      base_dd_min = 750;
-      base_dd_max = 800;
-      direct_power_mod = 0.20;
-      cooldown -> duration = 4.0;
-
-      id = 57984;
+        fire_nova_t(player_t* player) :
+            spell_t("fire_nova", player, RESOURCE_MANA, SCHOOL_FIRE)
+        {
+            aoe = true;
+            may_crit = true;
+            base_cost = 207;
+            base_execute_time = 2.5; // Really 2.0sec, but there appears to be a 0.5sec lag following.
+            base_dd_min = 960;
+            base_dd_max = 1000;
+            direct_power_mod = 0.50;
+        };
     };
-  };
 
-  struct fire_melee_t : public attack_t
-  {
-    fire_melee_t( player_t* player ) :
-      attack_t( "fire_melee", player, RESOURCE_NONE, SCHOOL_FIRE )
+    struct fire_blast_t : public spell_t
     {
-      may_crit = true;
-      base_dd_min = base_dd_max = 180;
-      base_execute_time = 2.0;
-      direct_power_mod = 1.0;
-      base_spell_power_multiplier = 0.60;
-      base_attack_power_multiplier = base_execute_time / 14;
-    }
-  };
+        fire_blast_t(player_t* player) :
+            spell_t("fire_blast", player, RESOURCE_MANA, SCHOOL_FIRE)
+        {
+            may_crit = true;
+            base_cost = 276;
+            base_execute_time = 0;
+            base_dd_min = 750;
+            base_dd_max = 800;
+            direct_power_mod = 0.20;
+            cooldown->duration = 4.0;
 
-  spell_t* fire_shield;
+            id = 57984;
+        };
+    };
 
-  fire_elemental_pet_t( sim_t* sim, player_t* owner ) : pet_t( sim, owner, "fire_elemental", true /*GUARDIAN*/ ) {}
-
-  virtual void init_base()
-  {
-    pet_t::init_base();
-
-    resource_base[ RESOURCE_HEALTH ] = 0; // FIXME!!
-    resource_base[ RESOURCE_MANA   ] = 4000;
-
-    health_per_stamina = 10;
-    mana_per_intellect = 15;
-
-    // Modeling melee as a foreground action since a loose model is Nova-Blast-Melee-repeat.
-    // The actual actions are not really so deterministic, but if you look at the entire spawn time,
-    // you will see that there is a 1-to-1-to-1 distribution (provided there is sufficient mana).
-
-    action_list_str = "travel/sequence,name=attack:fire_nova:fire_blast:fire_melee/restart_sequence,name=attack,moving=0";
-
-    fire_shield = new fire_shield_t( this );
-
-    // ====================================================================
-    // 2. INJECT DUAL WIELD SPEC TALENT INHERITANCE HERE (SAFE & ISOLATED)
-    // ====================================================================
-    shaman_t* master = (shaman_t*)owner;
-    if (master && master->talents.dual_wield_specialization)
+    struct fire_melee_t : public attack_t
     {
-        // Calculate the exact flat hit modifier from the master's talents (3% per point)
-        double talent_hit = master->talents.dual_wield_specialization * 0.03;
+        fire_melee_t(player_t* player) :
+            attack_t("fire_melee", player, RESOURCE_NONE, SCHOOL_FIRE)
+        {
+            may_crit = true;
+            base_dd_min = base_dd_max = 180;
+            base_execute_time = 2.0;
+            direct_power_mod = 1.0;
+            base_spell_power_multiplier = 0.60;
+            base_attack_power_multiplier = base_execute_time / 14;
+        }
+    };
 
-        this->attack_hit += talent_hit; // Corrects physical swings (fire_melee)
-        this->spell_hit += talent_hit; // Corrects Nova, Blast, and Shields
-    }
-  }
+    spell_t* fire_shield;
 
-  virtual int primary_resource() SC_CONST { return RESOURCE_MANA; }
+    fire_elemental_pet_t(sim_t* sim, player_t* owner) : pet_t(sim, owner, "fire_elemental", true /*GUARDIAN*/) {}
 
-  virtual void regen( double periodicity )
-  {
-    if ( ! recent_cast() )
+    virtual void init_base()
     {
-      resource_gain( RESOURCE_MANA, 10.66 * periodicity ); // FIXME! Does regen scale with gear???
+        pet_t::init_base();
+
+        resource_base[RESOURCE_HEALTH] = 0; // FIXME!!
+        resource_base[RESOURCE_MANA] = 4000;
+
+        health_per_stamina = 10;
+        mana_per_intellect = 15;
+
+        action_list_str = "travel/sequence,name=attack:fire_nova:fire_blast:fire_melee/restart_sequence,name=attack,moving=0";
+
+        fire_shield = new fire_shield_t(this);
+    } // <-- Closed init_base() properly here
+
+    // Placed independently outside of init_base()
+    virtual void recalculate()
+    {
+        // 1. Force the engine to do its normal background pet stat inheritance first
+        pet_t::recalculate();
+
+        // 2. Permanently re-inject the talent hit so it survives scale factor wipes
+        shaman_t* master = owner->cast_shaman();
+        if (master && master->talents.dual_wield_specialization)
+        {
+            double talent_hit = master->talents.dual_wield_specialization * 0.03;
+            this->attack_hit += talent_hit;
+            this->spell_hit += talent_hit;
+        }
     }
-  }
 
-  virtual void summon( double duration=0 )
-  {
-    pet_t::summon();
-    fire_shield -> execute();
-  }
+    virtual int primary_resource() SC_CONST { return RESOURCE_MANA; }
 
-  virtual double composite_attack_power() SC_CONST
-  {
-    return owner -> composite_attack_power_multiplier() * owner -> composite_attack_power();
-  }
+    virtual void regen(double periodicity)
+    {
+        if (!recent_cast())
+        {
+            resource_gain(RESOURCE_MANA, 10.66 * periodicity); // FIXME! Does regen scale with gear???
+        }
+    }
 
-  virtual double composite_spell_power( int school ) SC_CONST
-  {
-    return owner -> composite_spell_power_multiplier() * owner -> composite_spell_power( school );
-  }
+    virtual void summon(double duration = 0)
+    {
+        pet_t::summon();
+        fire_shield->execute();
+    }
 
-  virtual action_t* create_action( const std::string& name,
-                                   const std::string& options_str )
-  {
-    if ( name == "travel"      ) return new travel_t     ( this );
-    if ( name == "fire_nova"   ) return new fire_nova_t  ( this );
-    if ( name == "fire_blast"  ) return new fire_blast_t ( this );
-    if ( name == "fire_melee"  ) return new fire_melee_t ( this );
+    virtual double composite_attack_power() SC_CONST
+    {
+        return owner->composite_attack_power_multiplier() * owner->composite_attack_power();
+    }
 
-    return pet_t::create_action( name, options_str );
-  }
+    virtual double composite_spell_power(int school) SC_CONST
+    {
+        return owner->composite_spell_power_multiplier() * owner->composite_spell_power(school);
+    }
+
+    virtual action_t* create_action(const std::string& name,
+        const std::string& options_str)
+    {
+        if (name == "travel") return new travel_t(this);
+        if (name == "fire_nova") return new fire_nova_t(this);
+        if (name == "fire_blast") return new fire_blast_t(this);
+        if (name == "fire_melee") return new fire_melee_t(this);
+
+        return pet_t::create_action(name, options_str);
+    }
 };
 
 // trigger_flametongue_weapon ===============================================
