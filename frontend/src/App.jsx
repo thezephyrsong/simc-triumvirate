@@ -72,6 +72,120 @@ const SPEC_PRESETS = {
   "Custom":                { targetLevel: 63, scaleOnly: "" },
 };
 
+// ─── Raid buff/debuff overrides ──────────────────────────────────────────────
+// Mirrors the `override.*` options registered in the engine's sc_sim.cpp.
+// Default `true` matches the engine's own default (sim_t starts with
+// optimal_raid=1, i.e. every buff/debuff assumed present) — uncheck the ones
+// your raid comp doesn't actually bring.
+// NOTE: hellscreams_warsong / strength_of_wrynn are registered options but are
+// hardcoded off in this engine fork and have no effect either way, so they're
+// left out here rather than shown as a checkbox that silently does nothing.
+const RAID_BUFF_GROUPS = [
+  {
+    title: "Raid Buffs — Physical",
+    buffs: [
+      ["battle_shout", "Battle Shout"],
+      ["blessing_of_might", "Blessing of Might"],
+      ["strength_of_earth", "Strength of Earth Totem"],
+      ["horn_of_winter", "Horn of Winter"],
+      ["abominations_might", "Abomination's Might"],
+      ["unleashed_rage", "Unleashed Rage"],
+      ["trueshot_aura", "Trueshot Aura"],
+      ["ferocious_inspiration", "Ferocious Inspiration"],
+      ["sanctified_retribution", "Sanctified Retribution"],
+      ["swift_retribution", "Swift Retribution"],
+      ["blessing_of_kings", "Blessing of Kings"],
+      ["windfury_totem", "Windfury Totem"],
+      ["improved_icy_talons", "Improved Icy Talons"],
+      ["leader_of_the_pack", "Leader of the Pack"],
+    ],
+  },
+  {
+    title: "Raid Buffs — Caster / Stamina",
+    buffs: [
+      ["arcane_brilliance", "Arcane Brilliance"],
+      ["divine_spirit", "Divine Spirit"],
+      ["blessing_of_wisdom", "Blessing of Wisdom"],
+      ["mana_spring_totem", "Mana Spring Totem"],
+      ["totem_of_wrath", "Totem of Wrath"],
+      ["elemental_oath", "Elemental Oath"],
+      ["moonkin_aura", "Moonkin Aura"],
+      ["improved_moonkin_aura", "Improved Moonkin Aura"],
+      ["wrath_of_air", "Wrath of Air Totem"],
+      ["arcane_empowerment", "Arcane Empowerment"],
+      ["flametongue_totem", "Flametongue Totem"],
+      ["fortitude", "Power Word: Fortitude"],
+      ["mark_of_the_wild", "Mark of the Wild"],
+      ["commanding_shout", "Commanding Shout"],
+      ["devotion_aura", "Devotion Aura"],
+      ["heroic_presence", "Heroic Presence"],
+      ["replenishment", "Replenishment"],
+      ["bloodlust", "Bloodlust / Heroism"],
+    ],
+  },
+  {
+    title: "Target Debuffs — Physical",
+    buffs: [
+      ["faerie_fire", "Faerie Fire"],
+      ["improved_faerie_fire", "Improved Faerie Fire"],
+      ["sunder_armor", "Sunder Armor"],
+      ["blood_frenzy", "Blood Frenzy"],
+      ["savage_combat", "Savage Combat"],
+      ["trauma", "Trauma"],
+      ["mangle", "Mangle"],
+      ["thunder_clap", "Thunder Clap"],
+      ["infected_wounds", "Infected Wounds"],
+      ["poisoned", "Poisoned (Wound Poison)"],
+      ["master_poisoner", "Master Poisoner"],
+      ["hunters_mark", "Hunter's Mark"],
+      ["scorpid_sting", "Scorpid Sting"],
+      ["winters_chill", "Winter's Chill"],
+      ["judgements_of_the_just", "Judgements of the Just"],
+      ["rampage", "Rampage"],
+      ["bleeding", "Bleeding (physical DoT active)"],
+    ],
+  },
+  {
+    title: "Target Debuffs — Spell",
+    buffs: [
+      ["curse_of_elements", "Curse of the Elements"],
+      ["earth_and_moon", "Earth and Moon"],
+      ["heart_of_the_crusader", "Heart of the Crusader"],
+      ["judgement_of_wisdom", "Judgement of Wisdom"],
+      ["misery", "Misery"],
+      ["insect_swarm", "Insect Swarm"],
+      ["crypt_fever", "Crypt Fever"],
+      ["ebon_plaguebringer", "Ebon Plaguebringer"],
+      ["blood_plague", "Blood Plague"],
+      ["frost_fever", "Frost Fever"],
+      ["improved_scorch", "Improved Scorch"],
+      ["improved_shadow_bolt", "Shadow & Flame"],
+    ],
+  },
+  {
+    title: "Situational (off by default)",
+    buffs: [
+      ["celerity", "Celerity"],
+      ["focus_magic", "Focus Magic"],
+    ],
+    defaultOff: true,
+  },
+];
+
+// Flattened default state for all buffs, keyed by option name.
+const DEFAULT_BUFF_STATE = RAID_BUFF_GROUPS.reduce((acc, group) => {
+  group.buffs.forEach(([key]) => { acc[key] = !group.defaultOff; });
+  return acc;
+}, {});
+
+const FIGHT_STYLE_OPTIONS = [
+  { value: "Patchwerk",     label: "Patchwerk (Static)" },
+  { value: "HelterSkelter", label: "Helter Skelter (Movement + Stuns)" },
+  { value: "Ultraxion",     label: "Ultraxion (Movement + Raid Stun)" },
+  { value: "LightMovement", label: "Light Movement" },
+  { value: "HeavyMovement", label: "Heavy Movement" },
+];
+
 // Hyper-robust text summary parser to accurately build out spell arrays from standard console log structures
 const parseSpellBreakdown = (rawLog) => {
   if (!rawLog || typeof rawLog !== "string") return [];
@@ -360,6 +474,63 @@ function EPTable({ weights }) {
   );
 }
 
+// Collapsible grid of buff/debuff checkboxes for one category group.
+function BuffPanel({ group, state, onChange }) {
+  const allOn = group.buffs.every(([key]) => state[key]);
+  const allOff = group.buffs.every(([key]) => !state[key]);
+
+  const setAll = (val) => {
+    const next = {};
+    group.buffs.forEach(([key]) => { next[key] = val; });
+    onChange(next);
+  };
+
+  return (
+    <details style={{ marginBottom: 8, border: "1px solid var(--border)", borderRadius: 6, padding: "8px 12px" }}>
+      <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--text-dim)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>{group.title}</span>
+        <span style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: "2px 8px", fontSize: 11 }}
+            onClick={(e) => { e.preventDefault(); setAll(true); }}
+            disabled={allOn}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: "2px 8px", fontSize: 11 }}
+            onClick={(e) => { e.preventDefault(); setAll(false); }}
+            disabled={allOff}
+          >
+            None
+          </button>
+        </span>
+      </summary>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+        gap: "4px 12px",
+        marginTop: 10,
+      }}>
+        {group.buffs.map(([key, label]) => (
+          <label key={key} className="checkbox-container" style={{ fontSize: 12.5 }}>
+            <input
+              type="checkbox"
+              checked={!!state[key]}
+              onChange={(e) => onChange({ [key]: e.target.checked })}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 // ─── Main App ────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -374,6 +545,28 @@ export default function App() {
   const [varyLength,       setVaryLength]      = useState(0);
   const [fightStyle,       setFightStyle]      = useState("Patchwerk");
   const [playerSkill,      setPlayerSkill]     = useState(100);
+  const [threads,          setThreads]         = useState(2);
+  const [customRaidEvents, setCustomRaidEvents] = useState("");
+
+  // Advanced: lag & RNG
+  const [gcdLag,           setGcdLag]          = useState(0.150);
+  const [queueLag,         setQueueLag]        = useState(0.075);
+  const [channelLag,       setChannelLag]      = useState(0.250);
+  const [deterministic,    setDeterministic]   = useState(false);
+  const [seed,             setSeed]            = useState(0);
+  const [smoothRng,        setSmoothRng]       = useState(false);
+
+  // Advanced: target overrides
+  const [targetRace,       setTargetRace]      = useState("");
+  const [targetArmor,      setTargetArmor]     = useState(0);
+  const [targetHealth,     setTargetHealth]    = useState(0);
+
+  // Raid buffs/debuffs (defaults mirror the engine's own optimal_raid=1 default)
+  const [buffState,        setBuffState]       = useState(DEFAULT_BUFF_STATE);
+  const [bloodlustEarly,   setBloodlustEarly]  = useState(0);
+  const updateBuffs = useCallback((patch) => {
+    setBuffState(prev => ({ ...prev, ...patch }));
+  }, []);
 
   const [result,           setResult]          = useState(null);
   const [loading,          setLoading]         = useState(false);
@@ -460,15 +653,27 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           profile,
-          options: { 
-            targetLevel: targetLvl, 
-            iterations, 
-            threads: 2,
+          options: {
+            targetLevel: targetLvl,
+            iterations,
+            threads,
             scaleOnly: scalingParameter,
             max_time: fightLength,
             vary_combat_length: varyLength,
             fight_style: fightStyle,
-            player_skill: playerSkill
+            raid_events: customRaidEvents,
+            player_skill: playerSkill,
+            gcd_lag: gcdLag,
+            queue_lag: queueLag,
+            channel_lag: channelLag,
+            deterministic,
+            seed,
+            smooth_rng: smoothRng,
+            target_race: targetRace,
+            target_armor: targetArmor,
+            target_health: targetHealth,
+            bloodlust_early: bloodlustEarly,
+            buffs: buffState,
           },
         }),
       });
@@ -481,7 +686,12 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [profile, targetLvl, iterations, spec, calculateWeights, fightLength, varyLength, fightStyle, playerSkill]);
+  }, [
+    profile, targetLvl, iterations, spec, calculateWeights, fightLength, varyLength,
+    fightStyle, playerSkill, threads, customRaidEvents, gcdLag, queueLag, channelLag,
+    deterministic, seed, smoothRng, targetRace, targetArmor, targetHealth,
+    bloodlustEarly, buffState,
+  ]);
 
   return (
     <div style={{ maxWidth: 700, margin: "40px auto", padding: "0 20px", fontFamily: "var(--sans)", color: "#fff" }}>
@@ -600,9 +810,9 @@ export default function App() {
             className="input-field"
             style={{ height: "38px" }}
           >
-            <option value="Patchwerk">Patchwerk (Static)</option>
-            <option value="HelterSkelter">Helter Skelter</option>
-            <option value="Ultraxion">Ultraxion</option>
+            {FIGHT_STYLE_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
           </select>
         </div>
         <div className="form-group" style={{ margin: 0 }}>
@@ -634,7 +844,18 @@ export default function App() {
             className="input-field" 
           />
         </div>
-        
+        <div className="form-group" style={{ margin: 0 }}>
+          <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Threads</label>
+          <input
+            type="number"
+            min="1"
+            max="8"
+            value={threads}
+            onChange={(e) => setThreads(parseInt(e.target.value) || 1)}
+            className="input-field"
+          />
+        </div>
+
         <label className="checkbox-container">
           <input 
             type="checkbox" 
@@ -644,6 +865,93 @@ export default function App() {
           Calculate Stat Weights
         </label>
       </div>
+
+      {/* --- 2b. ADVANCED: RAID EVENTS, LAG, RNG, TARGET --- */}
+      <details style={{ marginBottom: 16, border: "1px solid var(--border)", borderRadius: 6, padding: "8px 12px" }}>
+        <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--text-dim)" }}>
+          Advanced: Raid Events, Lag &amp; Target Overrides
+        </summary>
+
+        <div className="form-group" style={{ marginTop: 12 }}>
+          <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>
+            Custom Raid Events <span style={{ opacity: 0.6 }}>(appended after the Fight Style preset, e.g. "adds,count=2,cooldown=60,duration=15")</span>
+          </label>
+          <input
+            type="text"
+            value={customRaidEvents}
+            onChange={(e) => setCustomRaidEvents(e.target.value)}
+            placeholder="adds,count=2,cooldown=60,duration=15/stun,cooldown=90,duration=3"
+            className="input-field"
+            style={{ fontFamily: "var(--mono)", fontSize: 12 }}
+          />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px 16px", marginTop: 12 }}>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>GCD Lag (sec)</label>
+            <input type="number" step="0.01" value={gcdLag} onChange={(e) => setGcdLag(parseFloat(e.target.value) || 0)} className="input-field" />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Queue Lag (sec)</label>
+            <input type="number" step="0.01" value={queueLag} onChange={(e) => setQueueLag(parseFloat(e.target.value) || 0)} className="input-field" />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Channel Lag (sec)</label>
+            <input type="number" step="0.01" value={channelLag} onChange={(e) => setChannelLag(parseFloat(e.target.value) || 0)} className="input-field" />
+          </div>
+
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Target Race</label>
+            <select value={targetRace} onChange={(e) => setTargetRace(e.target.value)} className="input-field" style={{ height: "38px" }}>
+              <option value="">Default (none)</option>
+              <option value="humanoid">Humanoid</option>
+              <option value="beast">Beast</option>
+              <option value="dragonkin">Dragonkin</option>
+              <option value="giant">Giant</option>
+              <option value="undead">Undead</option>
+            </select>
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Target Armor Override</label>
+            <input type="number" value={targetArmor} onChange={(e) => setTargetArmor(parseInt(e.target.value) || 0)} placeholder="0 = engine default" className="input-field" />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Target Health Override</label>
+            <input type="number" value={targetHealth} onChange={(e) => setTargetHealth(parseInt(e.target.value) || 0)} placeholder="0 = engine default" className="input-field" />
+          </div>
+
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Bloodlust Early Casts</label>
+            <input type="number" min="0" max="20" value={bloodlustEarly} onChange={(e) => setBloodlustEarly(parseInt(e.target.value) || 0)} className="input-field" />
+          </div>
+          <label className="checkbox-container">
+            <input type="checkbox" checked={smoothRng} onChange={(e) => setSmoothRng(e.target.checked)} />
+            Smooth RNG
+          </label>
+          <label className="checkbox-container">
+            <input type="checkbox" checked={deterministic} onChange={(e) => setDeterministic(e.target.checked)} />
+            Deterministic Roll (fixed seed)
+          </label>
+          {deterministic && (
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 500 }}>Seed</label>
+              <input type="number" value={seed} onChange={(e) => setSeed(parseInt(e.target.value) || 0)} className="input-field" />
+            </div>
+          )}
+        </div>
+      </details>
+
+      {/* --- 2c. RAID BUFFS / DEBUFFS --- */}
+      <details style={{ marginBottom: 16, border: "1px solid var(--border)", borderRadius: 6, padding: "8px 12px" }} open>
+        <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--text-dim)" }}>
+          Raid Buffs &amp; Debuffs <span style={{ opacity: 0.6, fontWeight: 400 }}>(all assumed present by default — uncheck what your raid doesn't bring)</span>
+        </summary>
+        <div style={{ marginTop: 12 }}>
+          {RAID_BUFF_GROUPS.map((group) => (
+            <BuffPanel key={group.title} group={group} state={buffState} onChange={updateBuffs} />
+          ))}
+        </div>
+      </details>
 
       {/* --- 3. PROFILE DATA INPUT --- */}
       <div className="form-group">
