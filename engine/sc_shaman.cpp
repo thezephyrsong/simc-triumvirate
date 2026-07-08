@@ -3453,23 +3453,33 @@ void shaman_t::interrupt()
 // shaman_t::composite_attack_hit() ==========================================
 double shaman_t::composite_attack_hit() SC_CONST
 {
+    // 1. Grab the baseline engine attributes + your gear hit rating + raid buffs
     double hit = player_t::composite_attack_hit();
 
     if (dual_wield() && talents.dual_wield_specialization)
     {
+        // Injects the remaining 1% per point top-up for your server's 9% talent rule
         hit += talents.dual_wield_specialization * 0.01;
     }
 
-    // ─── DYNAMIC ACCURACY GUARD ─────────────────────────────────────────────
-    // 1. Calculate your true yellow hit chance against a boss (Gear + Talents + Buffs)
-    // 2. Boss yellow cap requires 8% (0.08). Spell cap requires 17% (0.17).
-    bool yellow_attacks_capped = (hit >= 0.08);
-    bool spells_capped = (composite_spell_hit() >= 0.17);
+    // ─── UNIVERSAL SOFT-CAP CEILING ──────────────────────────────────────────
+    // Instead of checking the scaling engine, we check the actual combat table rules.
+    // Level 63 boss requires 8% physical yellow hit and 17% spell hit.
+    double yellow_miss = 0.08 - hit;
+    double spell_miss = 0.17 - composite_spell_hit();
 
-    // Only freeze the scaling engine if BOTH crucial soft-caps are completely secure
-    if (sim->scaling->stat == STAT_HIT && yellow_attacks_capped && spells_capped)
+    // If the user's gear profile has already completely cleared both soft-caps:
+    if (yellow_miss <= 0.0 && spell_miss <= 0.0)
     {
-        return hit;
+        // Calculate the exact hit value where the yellow soft-cap was perfectly satisfied (8%)
+        double yellow_cap_hit = 0.08;
+
+        // If an external loop pushes their gear hit beyond this point, clamp it.
+        // This allows baseline gear to calculate perfectly, but zeroes out any extra scaling value.
+        if (hit > yellow_cap_hit)
+        {
+            return yellow_cap_hit;
+        }
     }
 
     return hit;
