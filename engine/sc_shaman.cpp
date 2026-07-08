@@ -3463,6 +3463,14 @@ double shaman_t::composite_attack_hit() SC_CONST
         // so your ordinary white auto-attacks reach the server's true 9%.
         hit += talents.dual_wield_specialization * 0.01;
     }
+    // ─── NEW: ZERO OUT WHITE HIT SCALE INFLATION ────────────────────────────
+    // If the simulator is currently simulating extra hit rating to find its weight,
+    // we freeze this value. This forces the engine to realize your yellow/spell hit
+    // gains 0 DPS from more hit, dropping pure Hit EP down where it belongs.
+    if (sim->scaling->current_stat == STAT_HIT_RATING)
+    {
+        return hit;
+    }
 
     return hit;
 }
