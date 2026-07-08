@@ -141,6 +141,73 @@ function generatePawnString(specName, weights) {
   return `( Pawn: v1: "${specName} - SimC": ${parts.join(", ")} )`;
 }
 
+// Helper function to format weights into a valid TopFit import string matching client structures
+function generateTopFitString(specName, weights) {
+  const topFitStatMapping = {
+    Str:      "Strength",
+    Agi:      "Agility",
+    Int:      "Intellect",
+    Spi:      "Spirit",
+    Sta:      "Stamina",
+    AP:       "Ap",
+    SP:       "SpellPower",
+    Hit:      "HitRating",
+    Crit:     "CritRating",
+    Haste:    "Haste",
+    Exp:      "ExpertiseRating",
+    ArPen:    "ArmorPenetration",
+    Wdps:     "Dps",
+    WOHdps:   "OffHandDps",
+    WOHspeed: "OffHandSpeed"
+  };
+
+  const cleanParts = [];
+  Object.entries(weights).forEach(([stat, val]) => {
+    if (val === 0 || ["ub", "gm", "gb", "wt", "wtv"].includes(stat.toLowerCase())) return;
+    const tfKey = topFitStatMapping[stat] || stat;
+    cleanParts.push(`${tfKey}=${val.toFixed(4)}`);
+  });
+
+  const baseWeights = cleanParts.join(", ");
+
+  // ─── UNIVERSAL CAP MAPPING MATRIX ──────────────────────────────────────
+  let capSuffix = "";
+
+  const name = specName.toLowerCase();
+
+  // Physical Melee (Yellow hit 8% / Expertise 26)
+  if (name.includes("fury") || name.includes("assassination") || name.includes("subtlety") || name.includes("retribution")) {
+    capSuffix = " : HitRating=64; Hard, ExpertiseRating=26; Hard";
+  } 
+  // Death Knights (Specialized Expertise rules)
+  else if (name.includes("death knight") || name.includes("combat")) {
+    capSuffix = " : HitRating=64; Soft, ExpertiseRating=21; Hard";
+  }
+  // Feral Druids (Specialized Expertise rules)
+  else if (name.includes("feral")) {
+    capSuffix = " : HitRating=64; Soft, ExpertiseRating=16; Hard";
+  }
+  // Enhancement Shaman
+  else if (name.includes("enhancement")) {
+    // Note: Enhancement uses your server's custom 9% talent + DW penalty
+    capSuffix = " : HitRating=32; Soft, ExpertiseRating=11; Hard";
+  }
+  // Hunters (Physical Ranged only, Expertise irrelevant)
+  else if (name.includes("hunter")) {
+    capSuffix = " : HitRating=64; Hard";
+  }
+  // Pure Casters (17% Spell hit cap)
+  else if (name.includes("mage") || name.includes("warlock") || name.includes("priest") || name.includes("balance") || name.includes("elemental")) {
+    capSuffix = " : HitRating=136; Hard";
+  }
+  // Protection Paladin and Warrior (Tanking expertise and hit)
+  else if (name.includes("protection")) {
+    capSuffix = " : HitRating=64; Hard, ExpertiseRating=20; Hard";
+  }
+
+  return `( TopFit: v1: "${specName} - SimC": ${baseWeights}${capSuffix} )`;
+}
+
 // ─── Components ──────────────────────────────────────────────────────────────
 
 function Spinner() {
@@ -655,6 +722,22 @@ export default function App() {
                     }}
                     placeholder="Pawn string will appear here..."
                   />
+
+                  <label htmlFor="topfit-string-output" style={{ display: "block", fontSize: 12, color: "var(--text-dim)", fontWeight: 500, marginBottom: 6, marginTop: 16 }}>
+                    TopFit Import String
+                  </label>
+                  <textarea
+                    id="topfit-string-output"
+                    readOnly
+                    value={generateTopFitString(spec, result.weights)}
+                    onClick={(e) => e.target.select()}
+                    className="input-field"
+                    style={{
+                      width: "100%", height: "60px", fontSize: "12px", fontFamily: "var(--mono)",
+                      background: "#161b22", color: "var(--amber)", cursor: "pointer", resize: "none"
+                    }}
+                  />
+
                   <span style={{ fontSize: 11, color: "var(--text-dim)", display: "block", marginTop: 6 }}>
                     💡 Click inside the box to highlight and copy for your addon.
                   </span>
