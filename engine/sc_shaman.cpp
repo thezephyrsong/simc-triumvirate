@@ -325,23 +325,7 @@ struct spirit_wolf_pet_t : public pet_t
         initial_attack_power_per_strength = 2.0;
 
         melee = new melee_t(this);
-    } // <-- Closed init_base() properly here
-
-    // Now recalculate stands on its own as a proper struct member
-    virtual void recalculate()
-    {
-        // 1. Force the engine to do its normal background pet stat inheritance first
-        pet_t::recalculate();
-
-        // 2. Permanently re-inject the talent hit so it survives scale factor wipes
-        shaman_t* master = owner->cast_shaman();
-        if (master && master->talents.dual_wield_specialization)
-        {
-            double talent_hit = master->talents.dual_wield_specialization * 0.03;
-            this->attack_hit += talent_hit;
-            this->spell_hit += talent_hit;
-        }
-    }
+    } 
 
     virtual double composite_attack_power() SC_CONST
     {
@@ -349,6 +333,28 @@ struct spirit_wolf_pet_t : public pet_t
         double ap = pet_t::composite_attack_power();
         ap += (o->glyphs.feral_spirit ? 0.61 : 0.31) * o->composite_attack_power_multiplier() * o->composite_attack_power();
         return ap;
+    }
+
+    virtual double composite_attack_hit() SC_CONST
+    {
+        double hit = pet_t::composite_attack_hit();
+        shaman_t* master = owner->cast_shaman();
+        if (master && master->talents.dual_wield_specialization)
+        {
+            hit += master->talents.dual_wield_specialization * 0.03;
+        }
+        return hit;
+    }
+
+    virtual double composite_spell_hit() SC_CONST
+    {
+        double hit = pet_t::composite_spell_hit();
+        shaman_t* master = owner->cast_shaman();
+        if (master && master->talents.dual_wield_specialization)
+        {
+            hit += master->talents.dual_wield_specialization * 0.03;
+        }
+        return hit;
     }
 
     virtual void summon(double duration = 0)
@@ -452,22 +458,6 @@ struct fire_elemental_pet_t : public pet_t
         action_list_str = "travel/sequence,name=attack:fire_nova:fire_blast:fire_melee/restart_sequence,name=attack,moving=0";
 
         fire_shield = new fire_shield_t(this);
-    } // <-- Closed init_base() properly here
-
-    // Placed independently outside of init_base()
-    virtual void recalculate()
-    {
-        // 1. Force the engine to do its normal background pet stat inheritance first
-        pet_t::recalculate();
-
-        // 2. Permanently re-inject the talent hit so it survives scale factor wipes
-        shaman_t* master = owner->cast_shaman();
-        if (master && master->talents.dual_wield_specialization)
-        {
-            double talent_hit = master->talents.dual_wield_specialization * 0.03;
-            this->attack_hit += talent_hit;
-            this->spell_hit += talent_hit;
-        }
     }
 
     virtual int primary_resource() SC_CONST { return RESOURCE_MANA; }
@@ -494,6 +484,28 @@ struct fire_elemental_pet_t : public pet_t
     virtual double composite_spell_power(int school) SC_CONST
     {
         return owner->composite_spell_power_multiplier() * owner->composite_spell_power(school);
+    }
+
+    virtual double composite_attack_hit() SC_CONST
+    {
+        double hit = pet_t::composite_attack_hit();
+        shaman_t* master = owner->cast_shaman();
+        if (master && master->talents.dual_wield_specialization)
+        {
+            hit += master->talents.dual_wield_specialization * 0.03;
+        }
+        return hit;
+    }
+
+    virtual double composite_spell_hit() SC_CONST
+    {
+        double hit = pet_t::composite_spell_hit();
+        shaman_t* master = owner->cast_shaman();
+        if (master && master->talents.dual_wield_specialization)
+        {
+            hit += master->talents.dual_wield_specialization * 0.02;
+        }
+        return hit;
     }
 
     virtual action_t* create_action(const std::string& name,
