@@ -1230,7 +1230,7 @@ struct arcane_blast_t : public mage_spell_t
       { 80, 4, 1185, 1377, 0, 0.08 },
       { 76, 3, 1047, 1215, 0, 0.08 },
       { 71, 2, 897,  1041, 0, 0.08 },
-      { 64, 1, 842,  978,  0, 195  },
+      { 60, 1, 842,  978,  0, 195  },  // Triumvirate: level 60 (was 64)
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 42897 );
@@ -2296,7 +2296,7 @@ struct ice_lance_t : public mage_spell_t
       { 80, 3, 223, 258, 0, 0.06 },
       { 78, 3, 221, 255, 0, 0.06 },
       { 72, 2, 182, 210, 0, 0.06 },
-      { 66, 1, 161, 187, 0, 150 },
+      { 52, 1, 105, 131, 0, 150 },  // Triumvirate: level 52 (was 66), damage per live tooltip (was 161-187)
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 42914 );
@@ -2462,7 +2462,7 @@ struct frostfire_bolt_t : public mage_spell_t
     static rank_t ranks[] =
     {
       { 80, 2, 722, 838, 30, 0.14 },
-      { 75, 1, 629, 731, 20, 0.14 },
+      { 60, 1, 629, 731, 20, 0.14 },  // Triumvirate: level 60 (was 75) - "Custom Frostfire Bolt", same numbers just re-leveled
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 47610 );

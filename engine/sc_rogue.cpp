@@ -1575,6 +1575,7 @@ struct garrote_t : public rogue_attack_t
       { 80, 10, 0, 0, 119, 50 },
       { 75,  9, 0, 0, 110, 50 },
       { 70,  8, 0, 0, 102, 50 },
+      { 54,  6, 0, 0,  71, 50 },  // Triumvirate: added - level 60 chars previously had no valid rank at all
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 48676 );

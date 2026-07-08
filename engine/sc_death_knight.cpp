@@ -4884,17 +4884,17 @@ std::vector<talent_translation_t>& death_knight_t::get_talent_list()
 {
   if ( talent_list.empty() )
   {
-    static talent_translation_t translation_table[][MAX_TALENT_TREES] =
+    talent_translation_t translation_table[][MAX_TALENT_TREES] =
     {
       { {  1, 2, &( talents.butchery                         ) }, {  1, 3, &( talents.improved_icy_touch      ) }, {  1, 2, &( talents.vicious_strikes          ) } },
       { {  2, 3, &( talents.subversion                       ) }, {  2, 2, &( talents.runic_power_mastery     ) }, {  2, 3, &( talents.virulence                ) } },
-      { {  3, 5, &( talents.blade_barrier                    ) }, {  3, 5, &( talents.toughness                ) }, {  3, 5, &( talents.anticipation             ) } },
-      { {  4, 5, &( talents.bladed_armor                     ) }, {  4, 2, &( talents.icy_reach                ) }, {  4, 2, &( talents.epidemic                 ) } },
-      { {  5, 3, &( talents.scent_of_blood                   ) }, {  5, 5, &( talents.black_ice                ) }, {  5, 3, &( talents.morbidity                ) } },
+      { {  3, 5, &( talents.blade_barrier                    ) }, {  3, 5, &( talents.toughness               ) }, {  3, 5, &( talents.anticipation             ) } },
+      { {  4, 5, &( talents.bladed_armor                     ) }, {  4, 2, &( talents.icy_reach               ) }, {  4, 2, &( talents.epidemic                 ) } },
+      { {  5, 3, &( talents.scent_of_blood                   ) }, {  5, 5, &( talents.black_ice               ) }, {  5, 3, &( talents.morbidity                ) } },
       { {  6, 2, &( talents.two_handed_weapon_specialization ) }, {  6, 3, &( talents.nerves_of_cold_steel    ) }, {  6, 2, &( talents.unholy_command           ) } },
       { {  7, 1, &( talents.rune_tap                         ) }, {  7, 5, &( talents.icy_talons              ) }, {  7, 3, &( talents.ravenous_dead            ) } },
-      { {  8, 5, &( talents.dark_conviction                  ) }, {  8, 1, &( talents.lichborne                ) }, {  8, 3, &( talents.outbreak                 ) } },
-      { {  9, 3, &( talents.death_rune_mastery               ) }, {  9, 3, &( talents.annihilation             ) }, {  9, 5, &( talents.necrosis                 ) } },
+      { {  8, 5, &( talents.dark_conviction                  ) }, {  8, 1, &( talents.lichborne               ) }, {  8, 3, &( talents.outbreak                 ) } },
+      { {  9, 3, &( talents.death_rune_mastery               ) }, {  9, 3, &( talents.annihilation            ) }, {  9, 5, &( talents.necrosis                 ) } },
       { { 10, 3, &( talents.improved_rune_tap                ) }, { 10, 5, &( talents.killing_machine         ) }, { 10, 1, &( talents.corpse_explosion         ) } },
       { { 11, 3, &( talents.spell_deflection                 ) }, { 11, 2, &( talents.chill_of_the_grave      ) }, { 11, 2, &( talents.on_a_pale_horse          ) } },
       { { 12, 3, &( talents.vendetta                         ) }, { 12, 2, &( talents.endless_winter          ) }, { 12, 3, &( talents.blood_caked_blade        ) } },
@@ -4913,12 +4913,12 @@ std::vector<talent_translation_t>& death_knight_t::get_talent_list()
       // Triumvirate: Will of the Necropolis's Stamina/Parry bonus is still not wired up anywhere (see lines ~251-252, ~5032-5033) - flagged separately, not touched here.
       { { 25, 1, &( talents.heart_strike                     ) }, { 25, 3, &( talents.acclimation             ) }, { 25, 3, &( talents.crypt_fever              ) } },
       { { 26, 3, &( talents.might_of_mograine                ) }, { 26, 1, &( talents.frost_strike            ) }, { 26, 1, &( talents.bone_shield              ) } },
-      { { 27, 5, &( talents.blood_gorged                     ) }, { 27, 3, &( talents.guile_of_gorefiend      ) }, { 27, 3, &( talents.wandering_plague          ) } },
-      { { 28, 1, &( talents.dancing_rune_weapon              ) }, { 28, 5, &( talents.tundra_stalker          ) }, { 28, 3, &( talents.ebon_plaguebringer        ) } },
-      { {  0, 0, NULL                                        }, { 29, 1, &( talents.howling_blast            ) }, { 29, 1, &( talents.scourge_strike            ) } },
-      { {  0, 0, NULL                                        }, {  0, 0, NULL                                  }, { 30, 5, &( talents.rage_of_rivendare         ) } },
-      { {  0, 0, NULL                                        }, {  0, 0, NULL                                  }, { 31, 1, &( talents.summon_gargoyle          ) } },
-      { {  0, 0, NULL                                        }, {  0, 0, NULL                                  }, {  0, 0, NULL                                   } }
+      { { 27, 5, &( talents.blood_gorged                     ) }, { 27, 3, &( talents.guile_of_gorefiend      ) }, { 27, 3, &( talents.wandering_plague         ) } },
+      { { 28, 1, &( talents.dancing_rune_weapon              ) }, { 28, 5, &( talents.tundra_stalker          ) }, { 28, 3, &( talents.ebon_plaguebringer       ) } },
+      { {  0, 0, NULL                                          }, { 29, 1, &( talents.howling_blast           ) }, { 29, 1, &( talents.scourge_strike           ) } },
+      { {  0, 0, NULL                                          }, {  0, 0, NULL                                 }, { 30, 5, &( talents.rage_of_rivendare        ) } },
+      { {  0, 0, NULL                                          }, {  0, 0, NULL                                 }, { 31, 1, &( talents.summon_gargoyle          ) } },
+      { {  0, 0, NULL                                          }, {  0, 0, NULL                                 }, {  0, 0, NULL                                  } }
     };
 
     util_t::translate_talent_trees( talent_list, translation_table, sizeof( translation_table ) );

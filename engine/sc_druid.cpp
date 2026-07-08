@@ -1804,7 +1804,7 @@ struct lacerate_t : public druid_bear_attack_t
     {
       { 80, 3, 88, 88, 64, 15 },
       { 73, 2, 70, 70, 51, 15 },
-      { 66, 1, 31, 31, 31, 15 },
+      { 60, 1, 31, 31, 31, 15 },  // Triumvirate: level 60 (was 66)
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks );

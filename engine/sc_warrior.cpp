@@ -1240,6 +1240,7 @@ struct devastate_t : public warrior_attack_t
       { 80, 5, 1010, 1010, 0, 15 },
       { 75, 4,  850,  850, 0, 15 },
       { 70, 3,  560,  560, 0, 15 },
+      { 60, 2,   96,   96, 0, 15 },  // Triumvirate: added - level 60 chars previously had no valid rank at all
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 47498 );

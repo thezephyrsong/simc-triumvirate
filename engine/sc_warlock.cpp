@@ -622,6 +622,7 @@ struct felguard_pet_t : public warlock_pet_t
       {
         { 76, 4, 124, 124, 0, 0.1 },
         { 68, 3,  78,  78, 0, 0.1 },
+        { 60, 2,  50,  50, 0, 0.1 },  // Triumvirate: added - level 60 pet previously had no valid rank at all
         { 0, 0, 0, 0, 0, 0 }
       };
       init_rank( ranks, 47994 );
@@ -725,6 +726,7 @@ struct felhunter_pet_t : public warlock_pet_t
       {
         { 74, 5, 118, 118, 0, 0.03 },
         { 66, 4, 101, 101, 0, 0.03 },
+        { 58, 3,  73, 103, 0, 0.03 },  // Triumvirate: added - level 60 chars (and this pet) previously had no valid rank at all
         { 0, 0, 0, 0, 0, 0 }
       };
       init_rank( ranks, 54053 );
@@ -2441,7 +2443,7 @@ struct shadowflame_t : public warlock_spell_t
     static rank_t ranks[] =
     {
       { 80, 2, 615, 671, 128, 0.25 },
-      { 75, 1, 520, 568, 108, 0.25 },
+      { 60, 1, 530, 578, 136, 0.25 },  // Triumvirate: level 60 (was 75), retuned damage per in-game tooltip (530-578 direct, 544 total DoT/4 ticks = 136/tick)
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 61290 );
@@ -2675,8 +2677,8 @@ struct incinerate_t : public warlock_spell_t
     {
       { 80, 4, 582, 676, 0, 0.14 },
       { 74, 3, 485, 563, 0, 0.14 },
-      { 70, 2, 429, 497, 0, 300  },
-      { 64, 1, 357, 413, 0, 256  },
+      { 60, 2, 394, 448, 0, 300  },  // Triumvirate: level 60 (was 70), damage per live tooltip (was 429-497)
+      { 52, 1, 333, 376, 0, 256  },  // Triumvirate: level 52 (was 64), damage per live tooltip (was 357-413)
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 47838 );
@@ -2701,7 +2703,7 @@ struct incinerate_t : public warlock_spell_t
 
     base_crit_bonus_multiplier *= 1.0 + p -> talents.ruin * 0.20;
 
-    immolate_bonus = util_t::ability_rank( p -> level,  157,80,  130,74,  120,70,  108,0 );
+    immolate_bonus = util_t::ability_rank( p -> level,  157,80,  131,74,  105,60,  88.5,52,  0,0 );  // Triumvirate: corrected tiers/levels per live tooltip data
   }
 
   virtual void execute()
@@ -3100,7 +3102,7 @@ struct fel_armor_t : public warlock_spell_t
 
     harmful = false;
     trigger_gcd = 0;
-    bonus_spell_power = util_t::ability_rank( p -> level,  180.0,78,  150.0,73,  100.0,67,  50.0,62,  0.0,0 );
+    bonus_spell_power = util_t::ability_rank( p -> level,  180.0,78,  150.0,73,  100.0,67,  50.0,60,  0.0,0 );  // Triumvirate: level 60 (was 62)
     bonus_spell_power *= 1.0 + p -> talents.demonic_aegis * 0.10;
 
     // Model the passive health tick.....

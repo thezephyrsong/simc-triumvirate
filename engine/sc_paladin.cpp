@@ -821,7 +821,7 @@ struct shield_of_righteousness_t : public paladin_attack_t
     static rank_t ranks[] =
     {
       { 80, 2, 520, 520, 0, 0.06 },
-      { 75, 1, 390, 390, 0, 0.06 },
+      { 60, 1, 390, 390, 0, 0.06 },  // Triumvirate: Rank 1 available at 60 (down from retail's 75)
     };
     init_rank( ranks, 61411 );
 
@@ -1953,6 +1953,7 @@ struct holy_shock_t : public paladin_spell_t
       { 75, 6, 1043, 1129, 0, 0.18 },
       { 70, 5,  904,  978, 0, 0.18 },
       { 64, 4,  693,  749, 0, 0.21 },
+      { 56, 3,  562,  608, 0, 0.18 },  // Triumvirate: added - level 60 chars previously had no valid rank at all
       { 0, 0, 0, 0, 0, 0 }
     };
     init_rank( ranks, 48825 );
