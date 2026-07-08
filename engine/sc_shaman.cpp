@@ -3467,7 +3467,7 @@ double shaman_t::composite_attack_hit() SC_CONST
     bool spells_capped = (composite_spell_hit() >= 0.17);
 
     // Only freeze the scaling engine if BOTH crucial soft-caps are completely secure
-    if (sim->scaling->current_stat == STAT_HIT_RATING && yellow_attacks_capped && spells_capped)
+    if (sim->scaling->stat == STAT_HIT && yellow_attacks_capped && spells_capped)
     {
         return hit;
     }
