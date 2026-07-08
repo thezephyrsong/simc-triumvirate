@@ -3453,21 +3453,21 @@ void shaman_t::interrupt()
 // shaman_t::composite_attack_hit() ==========================================
 double shaman_t::composite_attack_hit() SC_CONST
 {
-    // 1. Grab the baseline engine attributes + your gear hit rating + raid buffs
     double hit = player_t::composite_attack_hit();
 
     if (dual_wield() && talents.dual_wield_specialization)
     {
-        // The core retail engine natively applies 2% per point (6% total).
-        // This injects the remaining 1% per point (3% total top-up) 
-        // so your ordinary white auto-attacks reach the server's true 9%.
         hit += talents.dual_wield_specialization * 0.01;
     }
-    // ─── NEW: ZERO OUT WHITE HIT SCALE INFLATION ────────────────────────────
-    // If the simulator is currently simulating extra hit rating to find its weight,
-    // we freeze this value. This forces the engine to realize your yellow/spell hit
-    // gains 0 DPS from more hit, dropping pure Hit EP down where it belongs.
-    if (sim->scaling->current_stat == STAT_HIT_RATING)
+
+    // ─── DYNAMIC ACCURACY GUARD ─────────────────────────────────────────────
+    // 1. Calculate your true yellow hit chance against a boss (Gear + Talents + Buffs)
+    // 2. Boss yellow cap requires 8% (0.08). Spell cap requires 17% (0.17).
+    bool yellow_attacks_capped = (hit >= 0.08);
+    bool spells_capped = (composite_spell_hit() >= 0.17);
+
+    // Only freeze the scaling engine if BOTH crucial soft-caps are completely secure
+    if (sim->scaling->current_stat == STAT_HIT_RATING && yellow_attacks_capped && spells_capped)
     {
         return hit;
     }
