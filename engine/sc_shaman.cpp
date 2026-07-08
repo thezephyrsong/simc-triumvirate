@@ -203,6 +203,7 @@ struct shaman_t : public player_t
   virtual void      init_rng();
   virtual void      init_actions();
   virtual void      interrupt();
+  virtual double    composite_attack_hit() SC_CONST;
   virtual double    composite_attack_power() SC_CONST;
   virtual double    composite_attack_power_multiplier() SC_CONST;
   virtual double    composite_spell_power( int school ) SC_CONST;
@@ -3448,6 +3449,22 @@ void shaman_t::interrupt()
 
   if ( main_hand_attack ) main_hand_attack -> cancel();
   if (  off_hand_attack )  off_hand_attack -> cancel();
+}
+// shaman_t::composite_attack_hit() ==========================================
+double shaman_t::composite_attack_hit() SC_CONST
+{
+    // 1. Grab the baseline engine attributes + your gear hit rating + raid buffs
+    double hit = player_t::composite_attack_hit();
+
+    if (dual_wield() && talents.dual_wield_specialization)
+    {
+        // The core retail engine natively applies 2% per point (6% total).
+        // This injects the remaining 1% per point (3% total top-up) 
+        // so your ordinary white auto-attacks reach the server's true 9%.
+        hit += talents.dual_wield_specialization * 0.01;
+    }
+
+    return hit;
 }
 
 // shaman_t::composite_attack_power ==========================================
