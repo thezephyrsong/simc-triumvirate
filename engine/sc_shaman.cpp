@@ -325,6 +325,19 @@ struct spirit_wolf_pet_t : public pet_t
     initial_attack_power_per_strength = 2.0;
 
     melee = new melee_t( this );
+
+    // ====================================================================
+    // INJECT DUAL WIELD SPEC TALENT INHERITANCE (SAFE & ISOLATED)
+    // ====================================================================
+    shaman_t* master = owner->cast_shaman();
+    if (master && master->talents.dual_wield_specialization)
+    {
+        // Calculate the 3% flat hit modifier per talent point
+        double talent_hit = master->talents.dual_wield_specialization * 0.03;
+
+        this->attack_hit += talent_hit; // Corrects physical swings (wolf_melee)
+        this->spell_hit += talent_hit; // Precautionary in case of spell utility hooks
+    }
   }
   virtual double composite_attack_power() SC_CONST
   {
@@ -439,6 +452,19 @@ struct fire_elemental_pet_t : public pet_t
     action_list_str = "travel/sequence,name=attack:fire_nova:fire_blast:fire_melee/restart_sequence,name=attack,moving=0";
 
     fire_shield = new fire_shield_t( this );
+
+    // ====================================================================
+    // 2. INJECT DUAL WIELD SPEC TALENT INHERITANCE HERE (SAFE & ISOLATED)
+    // ====================================================================
+    shaman_t* master = (shaman_t*)owner;
+    if (master && master->talents.dual_wield_specialization)
+    {
+        // Calculate the exact flat hit modifier from the master's talents (3% per point)
+        double talent_hit = master->talents.dual_wield_specialization * 0.03;
+
+        this->attack_hit += talent_hit; // Corrects physical swings (fire_melee)
+        this->spell_hit += talent_hit; // Corrects Nova, Blast, and Shields
+    }
   }
 
   virtual int primary_resource() SC_CONST { return RESOURCE_MANA; }
