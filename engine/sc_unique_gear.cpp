@@ -919,14 +919,15 @@ bool unique_gear_t::get_equip_encoding(std::string& encoding,
     else if (name == "anvil_of_titans") e = "OnAttackHit_1000AP_10%_10Dur_50Cd";        // Triumvirate: retail placeholder, unverified
     else if (name == "flow_of_knowledge") e = "OnSpellCast_590SP_10%_10Dur_50Cd";         // Triumvirate: retail placeholder, unverified
     else if (name == "frostforged_sage") e = "OnSpellHit_285SP_10%_10Dur_60Cd";          // Triumvirate: retail placeholder, unverified (PvP resilience trinket)
-    else if (name == "frostforged_champion") e = "OnAttackHit_480AP_1ppm_10Dur_60Cd";        // Triumvirate: retail placeholder, unverified (PvP resilience trinket)
+    else if (name == "frostforged_champion") e = "OnAttackHit_480AP_1PPM_10Dur_60Cd";        // Triumvirate: retail placeholder, unverified (PvP resilience trinket)
     else if (name == "jousters_fury_alliance") e = "OnAttackHit_328Crit_10%_10Dur_50Cd";       // Triumvirate: retail placeholder, unverified
     else if (name == "jousters_fury_horde") e = "OnAttackHit_328Crit_10%_10Dur_50Cd";       // Triumvirate: retail placeholder, unverified
-    else if (name == "signet_of_edward_the_odd") e = "OnAttackHit_125Haste_15%_13Dur_45Cd";      // Triumvirate: retail placeholder, unverified
+    else if (name == "signet_of_edward_the_odd") e = "OnAttackHit_62Haste_15%_13Dur_45Cd";      // Triumvirate tooltip confirmed (screenshot): 62 Haste, 13Dur (was using retail 125 as placeholder); flat +21 AP, +8 haste rating are base "Equip:" stats, not part of this proc; % and Cd still unstated, assumed
     else if (name == "jetzes_bell") e = "OnSpellCast_125MP5_10%_15Dur_50Cd";        // Triumvirate: retail placeholder, unverified
     else if (name == "sifs_remembrance") e = "OnSpellCast_220MP5_10%_15Dur_50Cd";        // Triumvirate: retail placeholder, unverified
     else if (name == "show_of_faith") e = "OnSpellCast_272MP5_10%_15Dur_50Cd";        // Triumvirate: retail placeholder, unverified
     else if (name == "soul_of_the_dead") e = "OnSpellCrit_900Mana_25%_45Cd";             // Triumvirate: retail placeholder, unverified - mana battery on spell crit
+    else if (name == "atiesh_greatstaff_of_the_guardian") e = "OnSpellCast_250SP_15%_20Dur_45Cd";          // Triumvirate tooltip confirmed values (250 SP, 15%, 20Dur, 45Cd) BUT real proc also grants +135 spell crit rating simultaneously - engine's encoding only supports one stat per proc, so the crit component is omitted here. Flag for a custom register_ function if you want both stats modeled.
 
     // Some Normal/Heroic items have same name
     else if (name == "phylactery_of_the_nameless_lich") e = (heroic ? "OnSpellTickDamage_1206SP_30%_20Dur_100Cd" : "OnSpellTickDamage_1073SP_30%_20Dur_100Cd");
@@ -949,12 +950,12 @@ bool unique_gear_t::get_equip_encoding(std::string& encoding,
     else if (name == "robe_of_the_elder_scribes") e = "OnSpellCast_130SP_10%_10Dur";        // proc chance not stated on retail tooltip, assumed 10%, no ICD stated
     else if (name == "blade_of_wizardry") e = "OnSpellCast_280Haste_10%_6Dur";       // proc chance not stated on retail tooltip, assumed 10%, no ICD stated
     else if (name == "madness_of_the_betrayer") e = "OnAttackHit_300ArPen_10%_10Dur";      // proc chance not stated on retail tooltip, assumed 10%, no ICD stated
-    else if (name == "shard_of_contempt") e = "OnAttackHit_230AP_10%_20Dur";         // proc chance not stated on retail tooltip, assumed 10%, no ICD stated
-    else if (name == "lionheart_executioner") e = "OnAttackHit_100Str_10%_10Dur";        // weapon proc; proc chance not stated on retail tooltip, assumed 10%
-    else if (name == "dragonmaw") e = "OnAttackHit_212Haste_10%_10Dur";      // weapon proc; proc chance not stated on retail tooltip, assumed 10%
-    else if (name == "dragonstrike") e = "OnAttackHit_212Haste_10%_10Dur";      // weapon proc; same family as dragonmaw/drakefist_hammer
-    else if (name == "drakefist_hammer") e = "OnAttackHit_212Haste_10%_10Dur";      // weapon proc; same family as dragonmaw/dragonstrike
-    else if (name == "the_night_blade") e = "OnAttackHit_435ArPen_3Stack_10%_10Dur";  // weapon proc; stacking armor pen, proc chance not stated, assumed 10%
+    else if (name == "shard_of_contempt") e = (heroic ? "OnAttackHit_174AP_10%_20Dur" : "OnAttackHit_165AP_10%_20Dur");  // Triumvirate tooltip confirmed: 165/174 AP (was using retail 230 as placeholder); flat +25/+27 expertise rating is base item stat, not a proc; proc % still not stated on tooltip, assumed 10%
+    else if (name == "lionheart_executioner") e = "OnAttackHit_70Str_10%_10Dur";        // Triumvirate tooltip confirmed: 70 Str (was using retail 100 as placeholder); flat +8% Fear resist is a separate base "Equip:" stat, not part of this proc
+    else if (name == "dragonmaw") e = "OnAttackHit_127Haste_10%_10Dur";      // Triumvirate tooltip confirmed: 127 Haste (was using retail 212 as placeholder); proc chance still not stated, assumed 10%
+    else if (name == "dragonstrike") e = "OnAttackHit_127Haste_10%_10Dur";      // Triumvirate tooltip confirmed: 127 Haste (was using retail 212 as placeholder); same family as dragonmaw
+    else if (name == "drakefist_hammer") e = "OnAttackHit_127Haste_10%_10Dur";      // Triumvirate: not yet in item scan, assumed same as dragonmaw/dragonstrike (same weapon family) - verify when scanned
+    else if (name == "the_night_blade") e = "OnAttackHit_62ArPen_3Stack_10%_10Dur";  // Triumvirate tooltip confirmed: 62 ArPen per stack (was using retail-derived 435 as placeholder, way off)
     else if (name == "extract_of_necromantic_power") e = "OnSpellTickDamage_1050Shadow_10%_15Cd";
     else if (name == "lightning_capacitor") e = "OnSpellDirectCrit_750Nature_3Stack_2.5Cd";
     else if (name == "timbals_crystal") e = "OnSpellTickDamage_380Shadow_10%_15Cd";
@@ -1034,6 +1035,8 @@ bool unique_gear_t::get_use_encoding(std::string& encoding,
     else if (name == "spirit_world_glass") e = "336Spi_20Dur_120Cd";
     else if (name == "talisman_of_resurgence") e = "599SP_20Dur_120Cd";
     else if (name == "wrathstone") e = "856AP_20Dur_120Cd";
+    else if (name == "goblin_rocket_launcher") e = "1200Fire_120Cd";       // Triumvirate tooltip confirmed: 960-1440 dmg range (avg used, engine takes fixed value not range), 2min CD; 3s stun not modeled (no CC in DPS sim)
+    else if (name == "the_decapitator") e = "393Physical_180Cd";   // Triumvirate tooltip confirmed: 373-412 dmg range (avg used), 3min CD; flat +19 crit rating is base item stat, not part of this on-use effect
 
     // Hybrid
     else if (name == "fetish_of_volatile_power") e = (heroic ? "OnSpellCast_64Haste_8Stack_20Dur_120Cd" : "OnSpellCast_57Haste_8Stack_20Dur_120Cd");
