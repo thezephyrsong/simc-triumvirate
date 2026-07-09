@@ -25,49 +25,49 @@ const STAT_LABELS = {
 
 const SPEC_PRESETS = {
   // Death Knight
-  "Blood Death Knight":    { targetLevel: 63, scaleOnly: "hit,str,ap,sta,crit,haste,expertise,arpen" },
-  "Frost Death Knight":    { targetLevel: 63, scaleOnly: "hit,str,ap,sta,crit,haste,expertise,arpen" },
-  "Unholy Death Knight":   { targetLevel: 63, scaleOnly: "hit,str,ap,sta,crit,haste,expertise,arpen" },
+  "Blood Death Knight":    { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
+  "Frost Death Knight":    { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
+  "Unholy Death Knight":   { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
   
   // Druid
-  "Balance Druid":         { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
-  "Feral Cat Druid":       { targetLevel: 63, scaleOnly: "hit,agi,ap,sta,crit,haste,expertise,arpen" },
-  "Feral Bear Druid":      { targetLevel: 63, scaleOnly: "hit,agi,str,ap,sta,crit,haste,expertise" },
+  "Balance Druid":         { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
+  "Feral Cat Druid":       { targetLevel: 63, scaleOnly: "hit_rating,agility,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
+  "Feral Bear Druid":      { targetLevel: 63, scaleOnly: "hit_rating,agility,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating" },
   
   // Hunter
-  "Beast Mastery Hunter":  { targetLevel: 63, scaleOnly: "hit,agi,ap,sta,crit,haste,arpen" },
-  "Marksmanship Hunter":   { targetLevel: 63, scaleOnly: "hit,agi,ap,sta,crit,haste,arpen" },
-  "Survival Hunter":       { targetLevel: 63, scaleOnly: "hit,agi,ap,sta,crit,haste" },
+  "Beast Mastery Hunter":  { targetLevel: 63, scaleOnly: "hit_rating,agility,attack_power,stamina,crit_rating,haste_rating,armor_penetration_rating" },
+  "Marksmanship Hunter":   { targetLevel: 63, scaleOnly: "hit_rating,agility,attack_power,stamina,crit_rating,haste_rating,armor_penetration_rating" },
+  "Survival Hunter":       { targetLevel: 63, scaleOnly: "hit_rating,agility,attack_power,stamina,crit_rating,haste_rating" },
   
   // Mage
-  "Arcane Mage":           { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
-  "Fire Mage":             { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
-  "Frost Mage":            { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
+  "Arcane Mage":           { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
+  "Fire Mage":             { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
+  "Frost Mage":            { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
   
   // Paladin
-  "Retribution Paladin":   { targetLevel: 63, scaleOnly: "hit,str,ap,sta,crit,haste,expertise" },
-  "Protection Paladin":    { targetLevel: 63, scaleOnly: "hit,str,ap,sta,crit,haste,expertise" },
+  "Retribution Paladin":   { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating" },
+  "Protection Paladin":    { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating" },
   
   // Priest
-  "Shadow Priest":         { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
+  "Shadow Priest":         { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
   
   // Rogue
-  "Assassination Rogue":   { targetLevel: 63, scaleOnly: "hit,agi,ap,sta,crit,haste,expertise" },
-  "Combat Rogue":          { targetLevel: 63, scaleOnly: "hit,agi,ap,sta,crit,haste,expertise,arpen" },
-  "Subtlety Rogue":        { targetLevel: 63, scaleOnly: "hit,agi,ap,sta,crit,haste,expertise,arpen" },
+  "Assassination Rogue":   { targetLevel: 63, scaleOnly: "hit_rating,agility,attack_power,stamina,crit_rating,haste_rating,expertise_rating" },
+  "Combat Rogue":          { targetLevel: 63, scaleOnly: "hit_rating,agility,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
+  "Subtlety Rogue":        { targetLevel: 63, scaleOnly: "hit_rating,agility,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
   
   // Shaman
-  "Elemental Shaman":      { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
-  "Enhancement Shaman":    { targetLevel: 63, scaleOnly: "hit,int,sp,agi,ap,sta,crit,haste,expertise" },
+  "Elemental Shaman":      { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
+  "Enhancement Shaman":    { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,agility,attack_power,stamina,crit_rating,haste_rating,expertise_rating" },
   
   // Warlock
-  "Affliction Warlock":    { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
-  "Demonology Warlock":    { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
-  "Destruction Warlock":   { targetLevel: 63, scaleOnly: "hit,int,sp,sta,crit,haste" },
+  "Affliction Warlock":    { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
+  "Demonology Warlock":    { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
+  "Destruction Warlock":   { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },
   
   // Warrior
-  "Arms Warrior":          { targetLevel: 63, scaleOnly: "hit,str,ap,sta,crit,haste,expertise,arpen" },
-  "Fury Warrior":          { targetLevel: 63, scaleOnly: "hit,str,ap,sta,crit,haste,expertise,arpen" },
+  "Arms Warrior":          { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
+  "Fury Warrior":          { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
   
   "Custom":                { targetLevel: 63, scaleOnly: "" },
 };
