@@ -1600,10 +1600,6 @@ static void trigger_abominations_might( action_t* a, double base_chance )
 // Trigger Blood Caked Blade ================================================
 static void trigger_blood_caked_blade( action_t* a )
 {
-  // Safety check: Prevent the BCB proc itself from recursively triggering more procs
-  if ( a -> proc ) 
-    return;
-
   death_knight_t* p = a -> player -> cast_death_knight();
 
   if ( ! p -> talents.blood_caked_blade )
@@ -1631,7 +1627,7 @@ static void trigger_blood_caked_blade( action_t* a )
       {
         death_knight_attack_t::target_debuff( dmg_type );
         death_knight_t* p = player -> cast_death_knight();
-        target_multiplier *= 0.5 + p -> diseases() * 0.25;
+        target_multiplier *= 0.50 + p -> diseases() * 0.25;
       }
     };
 
@@ -1863,9 +1859,6 @@ void death_knight_attack_t::execute()
 
     if ( result == RESULT_CRIT )
       p -> buffs_bloody_vengeance -> trigger( 1, p -> talents.bloody_vengeance * 0.01 );
-
-    // Emulate server mechanic: trigger BCB on all physical strikes (yellow and white)
-    trigger_blood_caked_blade( this );
   }
 }
 
@@ -2130,10 +2123,7 @@ struct melee_t : public death_knight_attack_t
     if ( result_is_hit() )
     {
       trigger_necrosis( this );
-      
-      // Removed trigger_blood_caked_blade( this ); 
-      // This is now handled globally inside death_knight_attack_t::execute()
-
+      trigger_blood_caked_blade( this );
       if ( p -> buffs_scent_of_blood -> up() )
       {
         p -> resource_gain( resource, 5, p -> gains_scent_of_blood );
