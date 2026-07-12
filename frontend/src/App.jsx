@@ -25,9 +25,9 @@ const STAT_LABELS = {
 
 const SPEC_PRESETS = {
   // Death Knight
-  "Blood Death Knight":    { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
-  "Frost Death Knight":    { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
-  "Unholy Death Knight":   { targetLevel: 63, scaleOnly: "hit_rating,strength,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
+  "Blood Death Knight":    { targetLevel: 63, scaleOnly: "hit_rating,strength,agility,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
+  "Frost Death Knight":    { targetLevel: 63, scaleOnly: "hit_rating,strength,agility,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
+  "Unholy Death Knight":   { targetLevel: 63, scaleOnly: "hit_rating,strength,agility,attack_power,stamina,crit_rating,haste_rating,expertise_rating,armor_penetration_rating" },
   
   // Druid
   "Balance Druid":         { targetLevel: 63, scaleOnly: "hit_rating,intellect,spell_power,stamina,crit_rating,haste_rating" },

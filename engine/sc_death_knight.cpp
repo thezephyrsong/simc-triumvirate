@@ -1600,6 +1600,10 @@ static void trigger_abominations_might( action_t* a, double base_chance )
 // Trigger Blood Caked Blade ================================================
 static void trigger_blood_caked_blade( action_t* a )
 {
+  // Safety check: Prevent the BCB proc itself from recursively triggering more procs
+  if ( a -> proc ) 
+    return;
+
   death_knight_t* p = a -> player -> cast_death_knight();
 
   if ( ! p -> talents.blood_caked_blade )
@@ -1859,6 +1863,9 @@ void death_knight_attack_t::execute()
 
     if ( result == RESULT_CRIT )
       p -> buffs_bloody_vengeance -> trigger( 1, p -> talents.bloody_vengeance * 0.01 );
+
+    // Emulate server mechanic: trigger BCB on all physical strikes (yellow and white)
+    trigger_blood_caked_blade( this );
   }
 }
 
@@ -2123,7 +2130,10 @@ struct melee_t : public death_knight_attack_t
     if ( result_is_hit() )
     {
       trigger_necrosis( this );
-      trigger_blood_caked_blade( this );
+      
+      // Removed trigger_blood_caked_blade( this ); 
+      // This is now handled globally inside death_knight_attack_t::execute()
+
       if ( p -> buffs_scent_of_blood -> up() )
       {
         p -> resource_gain( resource, 5, p -> gains_scent_of_blood );
@@ -4289,7 +4299,7 @@ void death_knight_t::init_base()
   // 180str (3% bonus) has 583 AP.  No talent or buff can explain this
   // discrepency, but it is also present on other Death Knights I have
   // checked.  TODO: investigate this further.
-  base_attack_power = 220;
+  base_attack_power = 1;
   base_attack_expertise = 0.01 * ( talents.veteran_of_the_third_war * 2 +
                                    talents.tundra_stalker +
                                    talents.rage_of_rivendare );
