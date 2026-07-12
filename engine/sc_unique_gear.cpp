@@ -1036,7 +1036,9 @@ bool unique_gear_t::get_use_encoding( std::string&       encoding,
   else if ( name == "wrathstone"                  ) e = "856AP_20Dur_120Cd";
   else if ( name == "goblin_rocket_launcher"      ) e = "1200Fire_120Cd";       // Triumvirate tooltip confirmed: 960-1440 dmg range (avg used, engine takes fixed value not range), 2min CD; 3s stun not modeled (no CC in DPS sim)
   else if ( name == "the_decapitator"             ) e = "393Physical_180Cd";   // Triumvirate tooltip confirmed: 373-412 dmg range (avg used), 3min CD; flat +19 crit rating is base item stat, not part of this on-use effect
+  else if ( name == "sphere_of_red_dragon's_blood") e = "275AP_20Dur_120Cd";   // Triumvirate tooltip confirmed
 
+	  
   // Hybrid
   else if ( name == "fetish_of_volatile_power"   ) e = ( heroic ? "OnSpellCast_64Haste_8Stack_20Dur_120Cd" : "OnSpellCast_57Haste_8Stack_20Dur_120Cd" );
   else if ( name == "talisman_of_volatile_power" ) e = ( heroic ? "OnSpellCast_64Haste_8Stack_20Dur_120Cd" : "OnSpellCast_57Haste_8Stack_20Dur_120Cd" );
