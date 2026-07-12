@@ -1610,7 +1610,7 @@ static void trigger_blood_caked_blade( action_t* a )
     return;
 
   double chance = 0;
-  chance = p -> talents.blood_caked_blade * 0.10;
+  chance = p -> talents.blood_caked_blade * 0.20;
   if ( p -> rng_blood_caked_blade->roll( chance ) )
   {
     struct bcb_t : public death_knight_attack_t
@@ -1631,7 +1631,7 @@ static void trigger_blood_caked_blade( action_t* a )
       {
         death_knight_attack_t::target_debuff( dmg_type );
         death_knight_t* p = player -> cast_death_knight();
-        target_multiplier *= 0.25 + p -> diseases() * 0.125;
+        target_multiplier *= 0.5 + p -> diseases() * 0.25;
       }
     };
 
