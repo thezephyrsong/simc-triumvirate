@@ -820,7 +820,7 @@ export default function App() {
           <input 
             type="number" 
             value={fightLength} 
-            onChange={(e) => setFightLength(parseInt(e.target.value) || 300)} 
+            onChange={(e) => setFightLength(parseInt(e.target.value) || 150)} 
             className="input-field" 
           />
         </div>
