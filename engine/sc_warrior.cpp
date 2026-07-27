@@ -535,7 +535,7 @@ static void trigger_sword_specialization( attack_t* a )
                      p -> name(), p -> procs_sword_specialization -> name() );
 
     p -> procs_sword_specialization -> occur();
-    p -> cooldowns_sword_specialization -> start( 6.0 );
+    p -> cooldowns_sword_specialization -> start( 3.0 );  // Triumvirate: 3s ICD (down from 6s)
 
     p -> main_hand_attack -> proc = true;
     p -> main_hand_attack -> execute();

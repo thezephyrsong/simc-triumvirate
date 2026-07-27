@@ -27,6 +27,7 @@ struct mage_t : public player_t
     buff_t* buffs_clearcasting;
     buff_t* buffs_combustion;
     buff_t* buffs_fingers_of_frost;
+    buff_t* buffs_four_times;  // Triumvirate: NEW 7/24 - Frostbolt stacks to 4, then next Frostbolt/FFB/Ice Lance triples
     buff_t* buffs_focus_magic_feedback;
     buff_t* buffs_ghost_charge;
     buff_t* buffs_hot_streak;
@@ -1085,7 +1086,7 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
         {
             int ab_stack = p->buffs_arcane_blast->stack();
 
-            arcane_blast_multiplier = ab_stack * (0.15 + (p->glyphs.arcane_blast ? 0.03 : 0.00));
+            arcane_blast_multiplier = ab_stack * (0.20 + (p->glyphs.arcane_blast ? 0.05 : 0.00));  // Triumvirate: base 20% (up from 15%), glyph +5% (up from 3%)
 
             for (int i = 0; i < 5; i++)
             {
@@ -1203,6 +1204,8 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
             if (result_is_hit())
             {
                 p->buffs_missile_barrage->trigger();
+                // Triumvirate: Arcane Barrage increases Arcane damage taken by 3% (NEW, 7/24)
+                sim->target->debuffs.arcane_barrage_vulnerability->trigger();
             }
             p->buffs_arcane_blast->expire();
         }
@@ -1759,7 +1762,7 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
             base_execute_time -= p->talents.improved_fire_ball * 0.1;
             base_multiplier *= 1.0 + p->talents.arcane_instability * 0.02;
             base_crit += p->talents.critical_mass * 0.03;
-            direct_power_mod += p->talents.empowered_fire * 0.07;
+            direct_power_mod += p->talents.empowered_fire * 0.06;  // Triumvirate: 6/12/18% (down from 7/14/21%)
 
             base_crit_bonus_multiplier *= 1.0 + ((p->talents.spell_power * 0.30) +
                 (p->talents.burnout * 0.15) +
@@ -2016,8 +2019,8 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
                 (p->talents.burnout * 0.15) +
                 (p->set_bonus.tier7_4pc_caster() ? 0.05 : 0.00));
 
-            direct_power_mod += p->talents.empowered_fire * 0.07;
-            tick_power_mod += p->talents.empowered_fire * 0.07;
+            direct_power_mod += p->talents.empowered_fire * 0.06;  // Triumvirate: 6/12/18% (down from 7/14/21%)
+            tick_power_mod += p->talents.empowered_fire * 0.06;  // Triumvirate: 6/12/18% (down from 7/14/21%)
             may_torment = true;
         }
 
@@ -2237,6 +2240,15 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
             may_torment = true;
         }
 
+        virtual void player_buff()
+        {
+            mage_t* p = player->cast_mage();
+            mage_spell_t::player_buff();
+            // Triumvirate: Four Times (NEW, 7/24) - if at 4 stacks, this cast consumes it for triple damage
+            if (p->buffs_four_times->check() == 4)
+                player_multiplier *= 3.0;
+        }
+
         virtual void execute()
         {
             mage_t* p = player->cast_mage();
@@ -2248,6 +2260,14 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
                 p->buffs_tier8_2pc->trigger();
                 trigger_replenishment(this);
                 if (fof_on_cast) trigger_fingers_of_frost(this);
+
+                // Triumvirate: Frostbolt increases Frost damage taken by 3% (NEW, 7/24)
+                sim->target->debuffs.frostbolt_vulnerability->trigger();
+
+                // Triumvirate: Four Times (NEW, 7/24) - consume if it was full, then always grant a stack
+                if (p->buffs_four_times->check() == 4)
+                    p->buffs_four_times->expire();
+                p->buffs_four_times->trigger();
             }
         }
 
@@ -2338,6 +2358,22 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
                 {
                     player_multiplier *= 3.0;
                 }
+            }
+
+            // Triumvirate: Four Times (NEW, 7/24) - if at 4 stacks, this cast consumes it for triple damage
+            if (p->buffs_four_times->check() == 4)
+                player_multiplier *= 3.0;
+        }
+
+        virtual void execute()
+        {
+            mage_t* p = player->cast_mage();
+            mage_spell_t::execute();
+            if (result_is_hit())
+            {
+                // Triumvirate: Four Times (NEW, 7/24) - Ice Lance only consumes, doesn't grant stacks
+                if (p->buffs_four_times->check() == 4)
+                    p->buffs_four_times->expire();
             }
         }
 
@@ -2471,8 +2507,8 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
             base_execute_time = 3.0;
             may_crit = true;
             direct_power_mod = base_execute_time / 3.5;
-            base_execute_time -= p->talents.improved_frost_bolt * 0.05;  // Triumvirate: NEW - Improved Frostbolt also reduces FFB cast time 0.05/0.1/0.15/0.2/0.25
-            direct_power_mod += p->talents.empowered_frost_bolt * 0.10;  // Triumvirate: NEW - Empowered Frostbolt now also applies to Frostfire Bolt (10/20%)
+            base_execute_time -= p->talents.improved_frost_bolt * 0.04;  // Triumvirate: 0.04/0.08/0.12/0.16/0.2 sec (down from 0.05/0.1/0.15/0.2/0.25)
+            direct_power_mod += p->talents.empowered_frost_bolt * 0.05;  // Triumvirate: Frostfire Bolt gets 5/10% (down from 7/14%)
 
             base_tick_time = 3.0;
             num_ticks = 3;
@@ -2485,7 +2521,7 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
             base_multiplier *= 1.0 + p->talents.arctic_winds * 0.01;
             base_multiplier *= 1.0 + p->talents.chilled_to_the_bone * 0.02;
             base_crit += p->talents.critical_mass * 0.03;
-            direct_power_mod += p->talents.empowered_fire * 0.07;
+            direct_power_mod += p->talents.empowered_fire * 0.06;  // Triumvirate: 6/12/18% (down from 7/14/21%)
 
             base_crit_bonus_multiplier *= 1.0 + ((util_t::talent_rank(p->talents.ice_shards, 3, 0.50, 0.90, 1.25)) +
                 (p->talents.spell_power * 0.30) +
@@ -2498,8 +2534,8 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
 
             if (p->glyphs.frostfire)
             {
-                base_multiplier *= 1.04;  // Triumvirate: 4% (was 2%)
-                base_crit += 0.02;
+                base_multiplier *= 1.02;  // Triumvirate: 2% (down from 4%)
+                base_crit += 0.02;  // Triumvirate: NEW crit chance +2%
             }
 
             may_torment = true;
@@ -2519,6 +2555,15 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
             return mage_spell_t::execute_time();
         }
 
+        virtual void player_buff()
+        {
+            mage_t* p = player->cast_mage();
+            mage_spell_t::player_buff();
+            // Triumvirate: Four Times (NEW, 7/24) - if at 4 stacks, this cast consumes it for triple damage
+            if (p->buffs_four_times->check() == 4)
+                player_multiplier *= 3.0;
+        }
+
         virtual void execute()
         {
             mage_t* p = player->cast_mage();
@@ -2530,6 +2575,10 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
                 p->buffs_missile_barrage->trigger();
                 p->buffs_tier8_2pc->trigger();
                 if (fof_on_cast) trigger_fingers_of_frost(this);
+
+                // Triumvirate: Four Times (NEW, 7/24) - Frostfire Bolt only consumes, doesn't grant stacks
+                if (p->buffs_four_times->check() == 4)
+                    p->buffs_four_times->expire();
             }
             trigger_hot_streak(this);
             consume_brain_freeze(this);
@@ -3239,10 +3288,11 @@ void mage_t::init_buffs()
 
     buffs_arcane_blast = new buff_t(this, "arcane_blast", 4, 6.0);
     buffs_arcane_power = new buff_t(this, "arcane_power", 1, (glyphs.arcane_power ? 23.0 : 20.0));  // Triumvirate: 20s base (was 15s), glyph keeps its +3s bonus
-    buffs_brain_freeze = new buff_t(this, "brain_freeze", 1, 15.0, 2.0, talents.brain_freeze * 0.05);
+    buffs_brain_freeze = new buff_t(this, "brain_freeze", 1, 15.0, 2.0, talents.brain_freeze * 0.06);  // Triumvirate: 6/12/18% (up from 5/10/15%)
     buffs_clearcasting = new buff_t(this, "clearcasting", 1, 10.0, 0, talents.arcane_concentration * 0.04);  // Triumvirate: 4/8/12/16/20% (was 2/4/6/8/10%)
     buffs_combustion = new buff_t(this, "combustion", 3);
     buffs_fingers_of_frost = new buff_t(this, "fingers_of_frost", 3, 0, 0, talents.fingers_of_frost * 0.24 / 2);  // Triumvirate: 3 charges (was 2), 12/24% chance (was 7/15%). Duration not modeled (buff persists until consumed) - 15->20s change is a non-issue here.
+    buffs_four_times = new buff_t(this, "four_times", 4, 0.0);  // Triumvirate: NEW 7/24 - caps at 4, consumed by next Frostbolt/Frostfire Bolt/Ice Lance
     buffs_focus_magic_feedback = new buff_t(this, "focus_magic_feedback", 1, 10.0);
     buffs_hot_streak_crits = new buff_t(this, "hot_streak_crits", 2, 0, 0, 1.0, true);
     buffs_hot_streak = new buff_t(this, "hot_streak", 1, 10.0, 0, talents.hot_streak / 3.0);
@@ -3804,6 +3854,8 @@ void player_t::mage_init(sim_t* sim)
     t->debuffs.slow = new debuff_t(sim, "slow", 1, 15.0);
     t->debuffs.winters_chill = new debuff_t(sim, "winters_chill", 5, 15.0);
     t->debuffs.winters_grasp = new debuff_t(sim, "winters_grasp", 1, 5.0);
+    t->debuffs.frostbolt_vulnerability = new debuff_t(sim, "frostbolt_vulnerability", 1, 30.0);  // Triumvirate: NEW 7/24
+    t->debuffs.arcane_barrage_vulnerability = new debuff_t(sim, "arcane_barrage_vulnerability", 1, 30.0);  // Triumvirate: NEW 7/24
 }
 
 // player_t::mage_combat_begin ==============================================
@@ -3822,6 +3874,9 @@ void player_t::mage_combat_begin(sim_t* sim)
     target_t* t = sim->target;
     if (sim->overrides.improved_scorch) t->debuffs.improved_scorch->override(1);
     if (sim->overrides.winters_chill) t->debuffs.winters_chill->override(5);
+    // Triumvirate: NEW 7/24
+    if (sim->overrides.frostbolt_vulnerability) t->debuffs.frostbolt_vulnerability->override(1);
+    if (sim->overrides.arcane_barrage_vulnerability) t->debuffs.arcane_barrage_vulnerability->override(1);
 
     if (sim->overrides.arcane_empowerment) sim->auras.arcane_empowerment->override(1, 3);
 }

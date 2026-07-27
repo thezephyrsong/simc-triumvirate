@@ -639,7 +639,7 @@ namespace { // ANONYMOUS NAMESPACE ==========================================
     struct divine_storm_t : public paladin_attack_t
     {
         divine_storm_t(paladin_t* p, const std::string& options_str) :
-            paladin_attack_t("divine_storm", p)
+            paladin_attack_t("divine_storm", p, SCHOOL_HOLYSTRIKE)  // Triumvirate: Holystrike (Physical+Holy), was Physical (7/24)
         {
             check_talent(p->talents.divine_storm);
 

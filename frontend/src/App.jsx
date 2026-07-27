@@ -160,6 +160,13 @@ const RAID_BUFF_GROUPS = [
       ["frost_fever", "Frost Fever"],
       ["improved_scorch", "Improved Scorch"],
       ["improved_shadow_bolt", "Shadow & Flame"],
+      // Triumvirate: NEW 7/24 - cross-class "damage taken" debuffs
+      ["frostbolt_vulnerability", "Frostbolt (+3% Frost taken)"],
+      ["arcane_barrage_vulnerability", "Arcane Barrage (+3% Arcane taken)"],
+      ["shadow_word_pain_vulnerability", "Shadow Word: Pain (+3% Shadow taken)"],
+      ["holy_fire_vulnerability", "Holy Fire (+3% Holy taken)"],
+      ["improved_stormstrike_vulnerability", "Improved Stormstrike (+3% Nature taken)"],
+      ["call_of_thunder_vulnerability", "Call of Thunder (+3% Fire taken)"],
     ],
   },
   {

@@ -212,14 +212,23 @@ enum school_type
   SCHOOL_ARCANE,    SCHOOL_BLEED,  SCHOOL_CHAOS,  SCHOOL_FIRE,     SCHOOL_FROST,
   SCHOOL_FROSTFIRE, SCHOOL_HOLY,   SCHOOL_NATURE, SCHOOL_PHYSICAL, SCHOOL_SHADOW,
   SCHOOL_DRAIN,
+  // Triumvirate: NEW compound schools, 7/24 - cross-class "damage taken" synergy patch
+  SCHOOL_SHADOWFROST,  // Shadow + Frost (Scourge Strike's disease-conversion component)
+  SCHOOL_FROSTSTRIKE,  // Physical + Frost (Obliterate, Main Hand)
+  SCHOOL_HOLYSTRIKE,   // Physical + Holy (Divine Storm)
+  SCHOOL_STORMSTRIKE,  // Physical + Nature (Envenom)
+  SCHOOL_VOLCANIC,     // Nature + Fire (Lava Lash, Lava Burst)
   SCHOOL_MAX
 };
 
-#define SCHOOL_ATTACK_MASK ( (1 << SCHOOL_BLEED)     | (1 << SCHOOL_PHYSICAL) )
+#define SCHOOL_ATTACK_MASK ( (1 << SCHOOL_BLEED)     | (1 << SCHOOL_PHYSICAL) | \
+                             (1 << SCHOOL_FROSTSTRIKE) | (1 << SCHOOL_HOLYSTRIKE) | \
+                             (1 << SCHOOL_STORMSTRIKE) )
 #define SCHOOL_SPELL_MASK  ( (1 << SCHOOL_ARCANE)    | (1 << SCHOOL_CHAOS)  | \
                              (1 << SCHOOL_FIRE)      | (1 << SCHOOL_FROST)  | \
                              (1 << SCHOOL_FROSTFIRE) | (1 << SCHOOL_HOLY)   | \
-                             (1 << SCHOOL_NATURE)    | (1 << SCHOOL_SHADOW) )
+                             (1 << SCHOOL_NATURE)    | (1 << SCHOOL_SHADOW) | \
+                             (1 << SCHOOL_SHADOWFROST) | (1 << SCHOOL_VOLCANIC) )
 #define SCHOOL_ALL_MASK    (-1)
 
 enum talent_tree_type
@@ -974,6 +983,13 @@ struct sim_t
     int improved_icy_talons;
     int improved_moonkin_aura;
     int improved_scorch;
+    // Triumvirate: NEW 7/24 - raid-comp toggles for the cross-class "damage taken" debuffs
+    int frostbolt_vulnerability;
+    int arcane_barrage_vulnerability;
+    int shadow_word_pain_vulnerability;
+    int holy_fire_vulnerability;
+    int improved_stormstrike_vulnerability;
+    int call_of_thunder_vulnerability;
     int improved_shadow_bolt;
     int infected_wounds;
     int insect_swarm;
@@ -1917,6 +1933,16 @@ struct target_t
     debuff_t* savage_combat;
     debuff_t* expose_armor;
     debuff_t* hemorrhage;
+    // Triumvirate: NEW cross-class "damage taken" debuffs, 7/24. Duration/stacking
+    // not specified in the changelog - modeled on the existing Improved Scorch
+    // convention already used in this file (single stack, 30s, refresh on trigger)
+    // since that's the closest existing analog. Flag if real tooltip durations surface.
+    debuff_t* frostbolt_vulnerability;           // Mage: Frostbolt, +3% Frost taken
+    debuff_t* arcane_barrage_vulnerability;       // Mage: Arcane Barrage, +3% Arcane taken
+    debuff_t* shadow_word_pain_vulnerability;     // Priest: SW:P, +3% Shadow taken
+    debuff_t* holy_fire_vulnerability;            // Priest: Holy Fire, +3% Holy taken
+    debuff_t* improved_stormstrike_vulnerability; // Shaman: Improved Stormstrike, +3% Nature taken
+    debuff_t* call_of_thunder_vulnerability;      // Shaman: Call of Thunder, +3% Fire taken
     debuffs_t() { memset( (void*) this, 0x0, sizeof( debuffs_t ) ); }
     bool frozen() { return frostbite -> check() || winters_grasp -> check(); }
     bool snared();

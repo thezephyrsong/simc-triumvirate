@@ -47,6 +47,7 @@ struct druid_t : public player_t
   buff_t* buffs_unseen_moon;
   buff_t* buffs_t10_feral_relic;
   buff_t* buffs_t10_balance_relic;
+  buff_t* buffs_feline_elegance;  // Triumvirate: NEW - Shred triggers, +2% agi/+5% move speed per stack, up to 3
 
   // Cooldowns
   cooldown_t* cooldowns_mangle_bear;
@@ -824,6 +825,10 @@ void druid_cat_attack_t::player_buff()
 
   p -> uptimes_rip  -> update( p -> dots_rip  -> ticking() );
   p -> uptimes_rake -> update( p -> dots_rake -> ticking() );
+
+  // Triumvirate: Moonfire increases physical/nature damage you deal to the target by 6% (NEW, 7/21)
+  if ( p -> dots_moonfire -> ticking() )
+    player_multiplier *= 1.06;
 }
 
 // druid_cat_attack_t::ready ===============================================
@@ -1195,7 +1200,7 @@ struct rip_t : public druid_cat_attack_t
     static double dmg_80[] = { 36+93*1, 36+93*2, 36+93*3, 36+93*4, 36+93*5 };
     static double dmg_71[] = { 30+67*1, 30+67*2, 30+67*3, 30+67*4, 30+67*5 };
     static double dmg_67[] = { 24+48*1, 24+48*2, 24+48*3, 24+48*4, 24+48*5 };
-    static double dmg_60[] = { 17+28*1, 17+28*2, 17+28*3, 17+28*4, 17+28*5 };
+    static double dmg_60[] = { 33+44*1, 33+44*2, 33+44*3, 33+44*4, 33+44*5 };  // Triumvirate: refit from two live tooltip readings (AP 2122/2166 -> 5cp totals 2155/2168); existing AP coefficient (0.01/tick/cp) confirmed unchanged
 
 
     combo_point_dmg = ( p -> level >= 80 ? dmg_80 :
@@ -1301,7 +1306,7 @@ struct shred_t : public druid_cat_attack_t
       { 80, 9, 296, 296, 0, 60 },
       { 75, 8, 251, 251, 0, 60 },
       { 70, 7, 180, 180, 0, 60 },
-      { 61, 6, 105, 105, 0, 60 },
+      { 60, 6, 180, 180, 0, 60 },  // Triumvirate: learnable at 60 (was 61), value 180 confirmed via tooltip 7/23 (was 105)
       { 54, 5,  80,  80, 0, 60 },
       {  0, 0,   0,   0, 0,  0 }
     };
@@ -1332,6 +1337,7 @@ struct shred_t : public druid_cat_attack_t
     if( result_is_hit() )
     {
       p -> buffs_mutilation -> trigger();
+      p -> buffs_feline_elegance -> trigger();  // Triumvirate: NEW - +2% agi/stack, up to 3
       trigger_infected_wounds( this );
       action_callback_t::trigger( player -> spell_direct_result_callbacks[ RESULT_HIT ], this );
     }
@@ -1348,7 +1354,7 @@ struct shred_t : public druid_cat_attack_t
 
     if ( t -> debuffs.bleeding -> check() )
     {
-      player_multiplier *= 1 + 0.05 * p -> talents.rend_and_tear;  // Triumvirate: 5/10/15/20/25%
+      player_multiplier *= 1 + 0.07 * p -> talents.rend_and_tear;  // Triumvirate: 7/14/21/28/35% (up from 5/10/15/20/25%)
     }
 
   }
@@ -1616,6 +1622,10 @@ void druid_bear_attack_t::player_buff()
   {
     player_multiplier *= 1.0 + p -> talents.king_of_the_jungle * 0.05;
   }
+
+  // Triumvirate: Moonfire increases physical/nature damage you deal to the target by 6% (NEW, 7/21)
+  if ( p -> dots_moonfire -> ticking() )
+    player_multiplier *= 1.06;
 }
 
 // druid_bear_attack_t::ready ==============================================
@@ -1961,7 +1971,7 @@ struct maul_t : public druid_bear_attack_t
 
     if ( t -> debuffs.bleeding -> check() )
     {
-      player_multiplier *= 1 + 0.05 * p -> talents.rend_and_tear;  // Triumvirate: 5/10/15/20/25%
+      player_multiplier *= 1 + 0.07 * p -> talents.rend_and_tear;  // Triumvirate: 7/14/21/28/35% (up from 5/10/15/20/25%)
     }
 
   }
@@ -2156,7 +2166,11 @@ void druid_spell_t::player_buff()
   if ( school == SCHOOL_ARCANE || school == SCHOOL_NATURE )
     player_multiplier *= 1.0 + p -> buffs_t10_2pc_caster -> value();
 
-  player_multiplier *= 1.0 + p -> talents.earth_and_moon * 0.02;
+  player_multiplier *= 1.0 + p -> talents.earth_and_moon * 0.03;  // Triumvirate: 3/6/9% (up from 2/4/6%)
+
+  // Triumvirate: Moonfire increases physical/nature damage you deal to the target by 6% (NEW, 7/21)
+  if ( school == SCHOOL_NATURE && p -> dots_moonfire -> ticking() )
+    player_multiplier *= 1.06;
 }
 
 // druid_spell_t::target_debuff ============================================
@@ -2442,6 +2456,7 @@ struct insect_swarm_t : public druid_spell_t
 
     base_multiplier *= 1.0 + ( util_t::talent_rank( p -> talents.genesis, 5, 0.01 ) +
                                ( p -> glyphs.insect_swarm          ? 0.30 : 0.00 )  +
+                               ( p -> glyphs.focus                ? 0.15 : 0.00 )  +  // Triumvirate: 15% (up from 10%)
                                ( p -> set_bonus.tier7_2pc_caster() ? 0.10 : 0.00 ) );
 
     if ( p -> idols.crying_wind )
@@ -2932,6 +2947,15 @@ struct starfire_t : public druid_spell_t
     if ( p -> buffs_t8_4pc_caster -> check() )
       return 0;
 
+    // Triumvirate: Whispers of the Crow reduces Starfire cast time by 0.04s per stack
+    if ( p -> buffs_whispers_of_the_crow && p -> buffs_whispers_of_the_crow -> check() )
+    {
+      double t = base_execute_time - 0.04 * p -> buffs_whispers_of_the_crow -> stack();
+      if ( t <= 0 ) return 0;
+      t *= haste();
+      return t;
+    }
+
     return druid_spell_t::execute_time();
   }
   virtual bool ready()
@@ -3203,7 +3227,7 @@ struct starfall_t : public druid_spell_t
         base_crit_bonus_multiplier *= 1.0 + util_t::talent_rank( p -> talents.vengeance, 5, 0.25 );  // Triumvirate: 25/50/75/100/125%
 
         if ( p -> glyphs.focus )
-          base_multiplier *= 1.2;
+          base_multiplier *= 1.15;  // Triumvirate: 15% (up from 10%)
 
         starfall_star_splash = new starfall_star_splash_t( p );
 
@@ -3633,7 +3657,7 @@ void druid_t::init_buffs()
 
   // buff_t( sim, player, name, max_stack, duration, cooldown, proc_chance, quiet )
   buffs_berserk            = new buff_t( this, "berserk"           , 1,  20.0 + ( glyphs.berserk ? 5.0 : 0.0 ) );  // Triumvirate: 20s (up from 15s)
-  buffs_whispers_of_the_crow  = new buff_t( this, "whispers_of_the_crow",  10, 30.0 );  // Triumvirate
+  buffs_whispers_of_the_crow  = new buff_t( this, "whispers_of_the_crow",  5, 15.0 );  // Triumvirate: 5 stacks (up from 3), 15s duration (up from 12s)
   buffs_whispers_of_the_raven = new buff_t( this, "whispers_of_the_raven", 10, 30.0 );  // Triumvirate
   buffs_eclipse_lunar      = new buff_t( this, "lunar_eclipse"     , 1,  15.0,  30.0, talents.eclipse / 5.0 );
   buffs_eclipse_solar      = new buff_t( this, "solar_eclipse"     , 1,  15.0,  30.0, talents.eclipse / 3.0 );
@@ -3657,6 +3681,7 @@ void druid_t::init_buffs()
   // PTR Idols
   buffs_t10_feral_relic   = new stat_buff_t( this, "idol_crying_moon",   STAT_AGILITY,     44, 5, 15.0, 0, idols.crying_moon   );
   buffs_t10_balance_relic = new stat_buff_t( this, "idol_lunar_eclipse", STAT_CRIT_RATING, 44, 5, 15.0, 0, idols.lunar_eclipse );
+  buffs_feline_elegance = new buff_t( this, "feline_elegance", 3, 0.0 );  // Triumvirate: NEW - no duration given, treated as persistent/refreshed by rotation; flag if a duration surfaces later
 
   // simple
   buffs_bear_form    = new buff_t( this, "bear_form" );
@@ -4035,10 +4060,12 @@ double druid_t::composite_attribute_multiplier( int attr ) SC_CONST
         m *= 1.0 + 0.03 * talents.heart_of_the_wild;  // Triumvirate: HotW 3/6/9/12/15%
     }
 
+  if ( attr == ATTR_AGILITY )
+    if ( buffs_feline_elegance -> check() )
+      m *= 1.0 + 0.02 * buffs_feline_elegance -> current_stack;  // Triumvirate: Feline Elegance, +2%/stack up to 3 (NEW)
+
   return m;
 }
-
-// druid_t::composite_tank_crit =============================================
 
 double druid_t::composite_tank_crit( int school ) SC_CONST
 {

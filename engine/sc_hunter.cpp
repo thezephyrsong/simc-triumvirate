@@ -514,7 +514,7 @@ struct hunter_pet_t : public pet_t
         pet_t::init_buffs();
         hunter_pet_t* p = (hunter_pet_t*)this->cast_pet();
         hunter_t* o = p->owner->cast_hunter();
-        buffs_bestial_wrath = new buff_t(this, "bestial_wrath", 1, 10.0);  // Triumvirate: 10s (was 15s) - confirmed changelog 7/1
+        buffs_bestial_wrath = new buff_t(this, "bestial_wrath", 1, 12.0);  // Triumvirate: 12s (up from 10s)
         buffs_call_of_the_wild = new buff_t(this, "call_of_the_wild", 1, 10.0);
         buffs_culling_the_herd = new buff_t(this, "culling_the_herd", 1, 10.0, 0.0, talents.culling_the_herd);
         buffs_frenzy = new buff_t(this, "frenzy", 1, 8.0, 0.0, o->talents.frenzy * 0.2);
@@ -1497,7 +1497,7 @@ struct call_of_the_wild_t : public hunter_pet_spell_t
         parse_options(0, options_str);
 
         base_cost = 0;
-        cooldown->duration = 5 * 60 * (1.0 - o->talents.longevity * 0.10);
+        cooldown->duration = 3 * 60 * (1.0 - o->talents.longevity * 0.10);  // Triumvirate: 3 min base (down from 5 min)
         trigger_gcd = 0.0;
         auto_cast = true;
 
@@ -2074,7 +2074,14 @@ struct black_arrow_t : public hunter_attack_t
 
         base_tick_time = 3.0;
         num_ticks = 6;  // Triumvirate: 18s duration (was 15s/5 ticks)
-        tick_power_mod = 0.1 / 5.0;
+        // Triumvirate: Black Arrow's DoT scales with AP (NEW, 7/21). The old rank-table
+        // "tick" values were calibrated for the pre-patch 5-tick model and no longer match
+        // live tooltip data. Refit against 3 in-game readings (Power 2104/2146/2164 ->
+        // total DoT 942/947/948 over 18s), linear regression: total ~= 724.6 + 0.1034*AP.
+        // Sample AP range is only ~60, so this is a rough fit - flag for a wider-AP
+        // reading (ideally 500+ AP spread) to tighten the coefficient.
+        base_td_init = 724.6 / num_ticks;   // ~120.8/tick flat component
+        tick_power_mod = 0.1034 / num_ticks; // ~0.0172/tick AP coefficient
         tick_may_crit = (p->glyphs.explosive_trap != 0);  // Triumvirate: NEW glyph interaction
 
         cooldown = p->get_cooldown("traps");
@@ -3074,7 +3081,7 @@ struct rapid_fire_t : public hunter_spell_t
         parse_options(options, options_str);
 
         base_cost = p->resource_base[RESOURCE_MANA] * 0.03;
-        cooldown->duration = 300;
+        cooldown->duration = 180;  // Triumvirate: 3 min base (down from 5 min)
         cooldown->duration -= p->talents.rapid_killing * 60;
         trigger_gcd = 0.0;
         harmful = false;
@@ -3539,7 +3546,7 @@ void hunter_t::init_buffs()
     buffs_furious_howl = new buff_t(this, "furious_howl", 1, 20.0);
     buffs_improved_aspect_of_the_hawk = new buff_t(this, "improved_aspect_of_the_hawk", 1, 10.0, 0.0, (talents.improved_aspect_of_the_hawk ? 0.10 : 0.0));
     buffs_improved_steady_shot = new buff_t(this, "improved_steady_shot", 1, 10.0, 0.0, talents.improved_steady_shot * 0.05);
-    buffs_lock_and_load = new buff_t(this, "lock_and_load", 2, 10.0, 18.0, talents.lock_and_load * 0.03); // Triumvirate: 3/6/9% chance (was ~6.7/13.3/20%), CD 18s (was 22s)
+    buffs_lock_and_load = new buff_t(this, "lock_and_load", 2, 10.0, 18.0, talents.lock_and_load * 0.05); // Triumvirate: 5/10/15% chance (up from 3/6/9%), CD 18s
 
     buffs_master_tactician = new buff_t(this, "master_tactician", 1, 15.0, 0.0, (talents.master_tactician ? 0.10 : 0.0));  // Triumvirate: 15s (was 10s)
     buffs_rapid_fire = new buff_t(this, "rapid_fire", 1, 15.0);

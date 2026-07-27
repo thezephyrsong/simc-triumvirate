@@ -43,6 +43,7 @@ struct shaman_t : public player_t
   buff_t* buffs_totem_of_wrath_glyph;
   buff_t* buffs_tundra;
   buff_t* buffs_water_shield;
+  buff_t* buffs_awakened;  // Triumvirate: NEW - Lava Burst self-CDR stacking buff, up to 3
 
   // Cooldowns
   cooldown_t* cooldowns_elemental_mastery;
@@ -595,7 +596,7 @@ static void trigger_windfury_weapon( attack_t* a )
 
   if ( p -> cooldowns_windfury_weapon -> remains() > 0 ) return;
 
-  if ( p -> rng_windfury_weapon -> roll( 0.20 + ( p -> glyphs.windfury_weapon ? 0.02 : 0 ) ) )
+  if ( p -> rng_windfury_weapon -> roll( 0.20 + ( p -> glyphs.windfury_weapon ? 0.03 : 0 ) ) )  // Triumvirate: glyph +3% (up from 2%)
   {
     if ( ! p -> windfury_weapon_attack )
     {
@@ -639,6 +640,8 @@ static void trigger_improved_stormstrike( attack_t* a )
   if ( p -> rng_improved_stormstrike -> roll( p -> talents.improved_stormstrike / 2.0 ) )
   {
     p -> resource_gain( RESOURCE_MANA, 0.40 * p -> resource_base[ RESOURCE_MANA ], p -> gains_improved_stormstrike );  // Triumvirate: 40% (was 20%)
+    // Triumvirate: Improved Stormstrike increases enemy Nature damage taken by 3% (NEW, 7/24)
+    a -> sim -> target -> debuffs.improved_stormstrike_vulnerability -> trigger();
   }
 }
 
@@ -914,8 +917,12 @@ struct lava_lash_t : public shaman_attack_t
   int wf_cd_only;
 
   lava_lash_t( player_t* player, const std::string& options_str ) :
-      shaman_attack_t( "lava_lash", player, SCHOOL_FIRE, TREE_ENHANCEMENT ), wf_cd_only( 0 )
+      shaman_attack_t( "lava_lash", player, SCHOOL_VOLCANIC, TREE_ENHANCEMENT ), wf_cd_only( 0 )
   {
+    // Triumvirate: Lava Lash deals Volcanic (Nature+Fire) damage and hits up to
+    // 2 enemies near the target (NEW, 7/24). The cleave-to-additional-targets part
+    // isn't modeled - this engine doesn't have multi-target/cleave infrastructure
+    // wired up elsewhere, so it's a no-op for the standard single-target sim.
     shaman_t* p = player -> cast_shaman();
 
     option_t options[] =
@@ -1256,6 +1263,11 @@ struct chain_lightning_t : public shaman_spell_t
     if ( result_is_hit() )
     {
       trigger_lightning_overload( this, lightning_overload_stats, lightning_overload_chance );
+      // Triumvirate: Call of Thunder - Lightning Bolt/Chain Lightning increase enemy Fire damage taken by 3% (NEW, 7/24)
+      if ( p -> talents.call_of_thunder )
+      {
+        sim -> target -> debuffs.call_of_thunder_vulnerability -> trigger();
+      }
     }
   }
 
@@ -1386,6 +1398,11 @@ struct lightning_bolt_t : public shaman_spell_t
       {
         trigger_tier8_4pc_elemental( this );
       }
+      // Triumvirate: Call of Thunder - Lightning Bolt/Chain Lightning increase enemy Fire damage taken by 3% (NEW, 7/24)
+      if ( p -> talents.call_of_thunder )
+      {
+        sim -> target -> debuffs.call_of_thunder_vulnerability -> trigger();
+      }
     }
     p -> buffs_electrifying_wind -> trigger();
   }
@@ -1428,7 +1445,7 @@ struct lava_burst_t : public shaman_spell_t
   double   lightning_overload_chance;
 
   lava_burst_t( player_t* player, const std::string& options_str ) :
-      shaman_spell_t( "lava_burst", player, SCHOOL_FIRE, TREE_ELEMENTAL ),
+      shaman_spell_t( "lava_burst", player, SCHOOL_VOLCANIC, TREE_ELEMENTAL ),  // Triumvirate: Volcanic (Nature+Fire), was Fire (7/24)
       maelstrom( 0 ), flame_shock( 0 ), lightning_overload_stats( 0 ), lightning_overload_chance( 0 )
   {
     shaman_t* p = player -> cast_shaman();
@@ -1460,7 +1477,7 @@ struct lava_burst_t : public shaman_spell_t
     base_hit            += p -> talents.elemental_precision * 0.01;
     direct_power_mod    += p -> talents.shamanism * 0.05;
 
-    base_crit_bonus_multiplier *= 1.0 + ( util_t::talent_rank( p -> talents.lava_flows,     3, 0.08, 0.16, 0.24 ) +
+    base_crit_bonus_multiplier *= 1.0 + ( util_t::talent_rank( p -> talents.lava_flows,     3, 0.10, 0.20, 0.30 ) +  // Triumvirate: 10/20/30% (up from 8/16/24%)
                                           util_t::talent_rank( p -> talents.elemental_fury, 5, 0.25 ) +
                                           ( p -> set_bonus.tier7_4pc_caster() ? 0.10 : 0.00 ) );
 
@@ -1481,9 +1498,9 @@ struct lava_burst_t : public shaman_spell_t
     }
 
     // Triumvirate: Lightning Overload now also affects Lava Burst
-    // (separate stats bucket since this is Fire school, not Nature like LB/CL's shared "lightning_overload" stat)
+    // (separate stats bucket since this is Volcanic school, not Nature like LB/CL's shared "lightning_overload" stat)
     lightning_overload_stats = p -> get_stats( "lava_burst_overload" );
-    lightning_overload_stats -> school = SCHOOL_FIRE;
+    lightning_overload_stats -> school = SCHOOL_VOLCANIC;  // Triumvirate: was Fire, now Volcanic (7/24)
     lightning_overload_chance = util_t::talent_rank( p -> talents.lightning_overload, 3, 0.20, 0.35, 0.50 );
   }
 
@@ -1495,6 +1512,14 @@ struct lava_burst_t : public shaman_spell_t
   virtual void execute()
   {
     shaman_t* p = player -> cast_shaman();
+
+    // Triumvirate: Awakened (NEW) - stacking self-buff reduces Lava Burst's own
+    // cooldown by 0.5s/stack, up to 3 stacks. No duration given for the buff, so
+    // it's treated as persistent/refreshed by rotation; flag if a duration surfaces later.
+    double reduced_cd = 8.0 - 0.5 * p -> buffs_awakened -> current_stack;
+    if ( reduced_cd < 0 ) reduced_cd = 0;
+    cooldown -> duration = reduced_cd;
+
     shaman_spell_t::execute();
     p -> buffs_elemental_mastery -> current_value = 0;
 
@@ -1507,6 +1532,8 @@ struct lava_burst_t : public shaman_spell_t
         p -> active_flame_shock -> extend_duration( 2 );
 
       trigger_lightning_overload( this, lightning_overload_stats, lightning_overload_chance, 0.05 );
+
+      p -> buffs_awakened -> trigger();
     }
   }
 
@@ -3281,6 +3308,7 @@ void shaman_t::init_buffs()
   buffs_tier10_4pc_melee      = new buff_t( this, "tier10_4pc_melee",      1,  10.0, 0.0, 0.15 ); //FIX ME - assuming no icd on this
   buffs_totem_of_wrath_glyph  = new buff_t( this, "totem_of_wrath_glyph",  1, 300.0, 0.0, glyphs.totem_of_wrath );
   buffs_water_shield          = new buff_t( this, "water_shield",          1, 600.0 );
+  buffs_awakened               = new buff_t( this, "awakened",              3, 0.0 );  // Triumvirate: NEW - no duration given, flag if one surfaces later
 
 
   // stat_buff_t( sim, player, name, stat, amount, max_stack, duration, cooldown, proc_chance, quiet )
@@ -3775,6 +3803,8 @@ void player_t::shaman_init( sim_t* sim )
   sim -> auras.wrath_of_air      = new aura_t( sim, "wrath_of_air",      1, 300.0 );
 
   sim -> target -> debuffs.totem_of_wrath = new debuff_t( sim, "totem_of_wrath_debuff" );
+  sim -> target -> debuffs.improved_stormstrike_vulnerability = new debuff_t( sim, "improved_stormstrike_vulnerability", 1, 30.0 );  // Triumvirate: NEW 7/24
+  sim -> target -> debuffs.call_of_thunder_vulnerability = new debuff_t( sim, "call_of_thunder_vulnerability", 1, 30.0 );  // Triumvirate: NEW 7/24
 
   for ( player_t* p = sim -> player_list; p; p = p -> next )
   {
@@ -3798,5 +3828,8 @@ void player_t::shaman_combat_begin( sim_t* sim )
   if ( sim -> overrides.wrath_of_air      ) sim -> auras.wrath_of_air      -> override( 1, 0.20 );
   if ( sim -> overrides.elemental_oath    ) sim -> auras.elemental_oath    -> override();
   if ( sim -> overrides.unleashed_rage    ) sim -> auras.unleashed_rage    -> override( 1, 10 );
+  // Triumvirate: NEW 7/24
+  if ( sim -> overrides.improved_stormstrike_vulnerability ) sim -> target -> debuffs.improved_stormstrike_vulnerability -> override( 1 );
+  if ( sim -> overrides.call_of_thunder_vulnerability ) sim -> target -> debuffs.call_of_thunder_vulnerability -> override( 1 );
 }
 

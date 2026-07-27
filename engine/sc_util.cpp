@@ -461,6 +461,12 @@ const char* util_t::school_type_string( int school )
   case SCHOOL_PHYSICAL:  return "physical";
   case SCHOOL_SHADOW:    return "shadow";
   case SCHOOL_DRAIN:     return "drain";
+  // Triumvirate: NEW compound schools, 7/24
+  case SCHOOL_SHADOWFROST: return "shadowfrost";
+  case SCHOOL_FROSTSTRIKE: return "froststrike";
+  case SCHOOL_HOLYSTRIKE:  return "holystrike";
+  case SCHOOL_STORMSTRIKE: return "stormstrike";
+  case SCHOOL_VOLCANIC:    return "volcanic";
   }
   return "unknown";
 }

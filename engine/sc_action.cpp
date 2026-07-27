@@ -331,6 +331,35 @@ void action_t::target_debuff( int dmg_type )
     target_dd_adder += t -> debuffs.hemorrhage -> value();
   }
 
+  // Triumvirate: NEW cross-class "damage taken" debuffs, 7/24. Compound schools
+  // (Shadowfrost/Froststrike/Holystrike/Stormstrike/Volcanic) check against every
+  // relevant parent-school debuff they're made of, so e.g. Volcanic (Nature+Fire)
+  // benefits from both the Nature and the Fire vulnerability if both are up.
+  if ( school == SCHOOL_FROST || school == SCHOOL_SHADOWFROST || school == SCHOOL_FROSTSTRIKE )
+  {
+    if ( t -> debuffs.frostbolt_vulnerability -> up() ) target_multiplier *= 1.03;
+  }
+  if ( school == SCHOOL_ARCANE )
+  {
+    if ( t -> debuffs.arcane_barrage_vulnerability -> up() ) target_multiplier *= 1.03;
+  }
+  if ( school == SCHOOL_SHADOW || school == SCHOOL_SHADOWFROST )
+  {
+    if ( t -> debuffs.shadow_word_pain_vulnerability -> up() ) target_multiplier *= 1.03;
+  }
+  if ( school == SCHOOL_HOLY || school == SCHOOL_HOLYSTRIKE )
+  {
+    if ( t -> debuffs.holy_fire_vulnerability -> up() ) target_multiplier *= 1.03;
+  }
+  if ( school == SCHOOL_NATURE || school == SCHOOL_STORMSTRIKE || school == SCHOOL_VOLCANIC )
+  {
+    if ( t -> debuffs.improved_stormstrike_vulnerability -> up() ) target_multiplier *= 1.03;
+  }
+  if ( school == SCHOOL_FIRE || school == SCHOOL_VOLCANIC )
+  {
+    if ( t -> debuffs.call_of_thunder_vulnerability -> up() ) target_multiplier *= 1.03;
+  }
+
   // FIXME! HotC and MP are 1%/2%/3%
   if ( t -> debuffs.heart_of_the_crusader -> up() ||
        t -> debuffs.totem_of_wrath        -> up() ||
@@ -450,6 +479,17 @@ double action_t::resistance() SC_CONST
     {
       resist_rating = std::min( t -> spell_resistance[ SCHOOL_FROST ],
                                 t -> spell_resistance[ SCHOOL_FIRE  ] );
+    }
+    // Triumvirate: NEW compound schools, 7/24 - same "worse of the two" convention as Frostfire
+    else if ( school == SCHOOL_SHADOWFROST )
+    {
+      resist_rating = std::min( t -> spell_resistance[ SCHOOL_SHADOW ],
+                                t -> spell_resistance[ SCHOOL_FROST  ] );
+    }
+    else if ( school == SCHOOL_VOLCANIC )
+    {
+      resist_rating = std::min( t -> spell_resistance[ SCHOOL_NATURE ],
+                                t -> spell_resistance[ SCHOOL_FIRE   ] );
     }
 
     resist_rating -= penetration;

@@ -2059,8 +2059,8 @@ struct drain_life_t : public warlock_spell_t
 
     warlock_spell_t::player_buff();
 
-    double min_multiplier[] = { 0, 0.03, 0.06 };
-    double max_multiplier[] = { 0, 0.09, 0.18 };
+    double min_multiplier[] = { 0, 0.04, 0.08 };  // Triumvirate: 4/8% (up from 3/6%)
+    double max_multiplier[] = { 0, 0.12, 0.24 };  // Triumvirate: 12/24% (up from 9/18%)
 
     assert( p -> talents.soul_siphon >= 0 &&
             p -> talents.soul_siphon <= 2 );
@@ -2161,8 +2161,8 @@ struct drain_soul_t : public warlock_spell_t
 
     warlock_t* p = player -> cast_warlock();
 
-    double min_multiplier[] = { 0, 0.03, 0.06 };
-    double max_multiplier[] = { 0, 0.09, 0.18 };
+    double min_multiplier[] = { 0, 0.04, 0.08 };  // Triumvirate: 4/8% (up from 3/6%)
+    double max_multiplier[] = { 0, 0.12, 0.24 };  // Triumvirate: 12/24% (up from 9/18%)
 
     assert( p -> talents.soul_siphon >= 0 &&
             p -> talents.soul_siphon <= 2 );
@@ -3802,12 +3802,12 @@ void warlock_t::init_buffs()
   buffs_empowered_imp       = new buff_t( this, "empowered_imp",       1,  8.0, 0.0, talents.empowered_imp / 3.0 );
   buffs_eradication         = new buff_t( this, "eradication",         1, 10.0, 0.0, talents.eradication ? 0.06 : 0.00 );
   buffs_fel_armor           = new buff_t( this, "fel_armor"     );
-  buffs_haunted             = new buff_t( this, "haunted",             1, 12.0, 0.0, talents.haunt );
+  buffs_haunted             = new buff_t( this, "haunted",             1, 15.0, 0.0, talents.haunt );  // Triumvirate: 15s (up from 12s) -- TODO: 2 stacks + extra-target splash not yet implemented
   buffs_life_tap_glyph      = new buff_t( this, "life_tap_glyph",      1, 40.0, 0.0, glyphs.life_tap );
   buffs_metamorphosis       = new buff_t( this, "metamorphosis",       1, 30.0 + glyphs.metamorphosis * 6.0, 0.0, talents.metamorphosis );
   buffs_molten_core         = new buff_t( this, "molten_core",         3, 15.0, 0.0, talents.molten_core * 0.04 );
   buffs_pyroclasm           = new buff_t( this, "pyroclasm",           1, 10.0, 0.0, talents.pyroclasm );
-  buffs_shadow_embrace      = new buff_t( this, "shadow_embrace",      3, 12.0, 0.0, talents.shadow_embrace );
+  buffs_shadow_embrace      = new buff_t( this, "shadow_embrace",      5, 12.0, 0.0, talents.shadow_embrace );  // Triumvirate: 5 stacks (up from 3)
   buffs_shadow_trance       = new buff_t( this, "shadow_trance",       1,  0.0, 0.0, talents.nightfall );
   buffs_tier10_4pc_caster   = new buff_t( this, "tier10_4pc_caster",   1, 10.0, 0.0, 0.15 ); // Fix-Me: Might need to add an ICD.
 

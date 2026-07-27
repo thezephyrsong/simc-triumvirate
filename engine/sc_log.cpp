@@ -54,6 +54,12 @@ static int school_id( int school )
   case SCHOOL_NATURE:    return 0x08;
   case SCHOOL_PHYSICAL:  return 0x01;
   case SCHOOL_SHADOW:    return 0x20;
+  // Triumvirate: NEW compound schools, 7/24 - combined bitmasks, matching the SCHOOL_FROSTFIRE convention
+  case SCHOOL_SHADOWFROST: return 0x30; // Shadow (0x20) | Frost (0x10)
+  case SCHOOL_FROSTSTRIKE: return 0x11; // Physical (0x01) | Frost (0x10)
+  case SCHOOL_HOLYSTRIKE:  return 0x03; // Physical (0x01) | Holy (0x02)
+  case SCHOOL_STORMSTRIKE: return 0x09; // Physical (0x01) | Nature (0x08)
+  case SCHOOL_VOLCANIC:    return 0x0C; // Nature (0x08) | Fire (0x04)
   default:               return 0x01;
   }
   return -1;

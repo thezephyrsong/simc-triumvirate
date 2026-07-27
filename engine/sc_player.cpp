@@ -1641,6 +1641,17 @@ double player_t::composite_spell_power( int school ) SC_CONST
     sp = std::max( spell_power[ SCHOOL_FROST ],
                    spell_power[ SCHOOL_FIRE  ] );
   }
+  // Triumvirate: NEW compound schools, 7/24 - same "best of the two" convention as Frostfire
+  else if ( school == SCHOOL_SHADOWFROST )
+  {
+    sp = std::max( spell_power[ SCHOOL_SHADOW ],
+                   spell_power[ SCHOOL_FROST  ] );
+  }
+  else if ( school == SCHOOL_VOLCANIC )
+  {
+    sp = std::max( spell_power[ SCHOOL_NATURE ],
+                   spell_power[ SCHOOL_FIRE   ] );
+  }
 
   if ( school != SCHOOL_MAX ) sp += spell_power[ SCHOOL_MAX ];
 

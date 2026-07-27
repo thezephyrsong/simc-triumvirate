@@ -22,6 +22,7 @@ struct priest_t : public player_t
     buff_t* buffs_shadow_weaving;
     buff_t* buffs_surge_of_light;
     buff_t* buffs_vampiric_embrace;
+    buff_t* buffs_mind_explosion;  // Triumvirate: NEW - Glyph of Mind Explosion, 12s window from Mind Blast
 
     // Cooldowns
     cooldown_t* cooldowns_mind_blast;
@@ -117,6 +118,7 @@ struct priest_t : public player_t
         int hymn_of_hope;
         int inner_fire;
         int mind_flay;
+        int mind_explosion;  // Triumvirate: NEW glyph, 7/15
         int penance;
         int shadow;
         int shadow_word_death;
@@ -788,6 +790,16 @@ namespace   // ANONYMOUS NAMESPACE ==========================================
             base_multiplier *= 1.0 + p->talents.searing_light * 0.05;
             base_crit += p->talents.holy_specialization * 0.01;
         }
+
+        virtual void execute()
+        {
+            priest_spell_t::execute();
+            if (result_is_hit())
+            {
+                // Triumvirate: Holy Fire increases Holy damage taken by 3% (NEW, 7/24)
+                sim->target->debuffs.holy_fire_vulnerability->trigger();
+            }
+        }
     };
 
     // Inner Fire Spell ======================================================
@@ -926,6 +938,7 @@ namespace   // ANONYMOUS NAMESPACE ==========================================
 
             cooldown->duration = 8.0;
             cooldown->duration -= p->talents.improved_mind_blast * 1.0;
+            if (p->glyphs.mind_explosion) cooldown->duration += 16.0;  // Triumvirate: NEW - Glyph of Mind Explosion increases MB cooldown by 16s
 
             if (p->set_bonus.tier6_4pc_caster()) base_multiplier *= 1.10;
         }
@@ -938,6 +951,7 @@ namespace   // ANONYMOUS NAMESPACE ==========================================
             {
                 p->recast_mind_blast = 0;
                 p->buffs_devious_mind->trigger();
+                if (p->glyphs.mind_explosion) p->buffs_mind_explosion->trigger();  // Triumvirate: NEW
                 if (result == RESULT_CRIT)
                 {
                     p->buffs_improved_spirit_tap->trigger();
@@ -1221,6 +1235,46 @@ namespace   // ANONYMOUS NAMESPACE ==========================================
                     p->buffs_improved_spirit_tap->trigger(1, -1.0, p->talents.improved_spirit_tap ? 0.5 : 0.0);
                     p->buffs_glyph_of_shadow->trigger();
                 }
+
+                // Triumvirate: Glyph of Mind Explosion - Mind Sear also applies SW:P and VT
+                // to the target while Mind Explosion is up. Triggered directly off the real
+                // SW:P/VT action objects (same "free proc" mechanism poisons already use in
+                // this file) so mana cost/cooldown/GCD/cast-count aren't touched, but each
+                // one gets a fresh player_buff() snapshot of current spell power/crit at the
+                // moment of application (a clean re-cast, not a copy of whatever's ticking).
+                if (p->glyphs.mind_explosion && p->buffs_mind_explosion->check())
+                {
+                    action_t* swp = p->dots_shadow_word_pain->action;
+                    if (swp)
+                    {
+                        swp->player_buff();
+                        swp->target_debuff(DMG_DIRECT);
+                        swp->calculate_result();
+                        if (swp->result_is_hit())
+                        {
+                            if (swp->ticking) swp->cancel();
+                            swp->snapshot_haste = swp->haste();
+                            swp->schedule_tick();
+                        }
+                    }
+
+                    if (p->talents.vampiric_touch)
+                    {
+                        action_t* vt = p->dots_vampiric_touch->action;
+                        if (vt)
+                        {
+                            vt->player_buff();
+                            vt->target_debuff(DMG_DIRECT);
+                            vt->calculate_result();
+                            if (vt->result_is_hit())
+                            {
+                                if (vt->ticking) vt->cancel();
+                                vt->snapshot_haste = vt->haste();
+                                vt->schedule_tick();
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1235,6 +1289,14 @@ namespace   // ANONYMOUS NAMESPACE ==========================================
                     player_multiplier *= 1.0 + p->talents.twisted_faith * 0.03 +
                         (p->glyphs.mind_flay ? 0.10 : 0.00);
                 }
+            }
+
+            // Triumvirate: Glyph of Mind Explosion - Mind Sear deals 75% reduced damage
+            // while Mind Explosion is active (in exchange for spreading SW:P/VT - see TODO,
+            // dot-spread portion not yet implemented pending design confirmation)
+            if (p->glyphs.mind_explosion && p->buffs_mind_explosion->check())
+            {
+                player_multiplier *= 0.25;
             }
         }
 
@@ -1611,6 +1673,8 @@ namespace   // ANONYMOUS NAMESPACE ==========================================
             if (result_is_hit())
             {
                 trigger_misery(this);
+                // Triumvirate: Shadow Word: Pain increases Shadow damage taken by 3% (NEW, 7/24)
+                sim->target->debuffs.shadow_word_pain_vulnerability->trigger();
             }
         }
 
@@ -2010,6 +2074,7 @@ void priest_t::init_glyphs()
         else if (n == "hymn_of_hope") glyphs.hymn_of_hope = 1;
         else if (n == "inner_fire") glyphs.inner_fire = 1;
         else if (n == "mind_flay") glyphs.mind_flay = 1;
+        else if (n == "mind_explosion") glyphs.mind_explosion = 1;  // Triumvirate: NEW
         else if (n == "penance") glyphs.penance = 1;
         else if (n == "shadow") glyphs.shadow = 1;
         else if (n == "shadow_word_death") glyphs.shadow_word_death = 1;
@@ -2142,6 +2207,7 @@ void priest_t::init_buffs()
     buffs_shadow_form = new buff_t(this, "shadow_form", 1);
     buffs_surge_of_light = new buff_t(this, "surge_of_light", 1, 10.0);
     buffs_vampiric_embrace = new buff_t(this, "vampiric_embrace", 1);
+    buffs_mind_explosion = new buff_t(this, "mind_explosion", 1, 12.0);  // Triumvirate: NEW
 
     // stat_buff_t( sim, player, name, stat, amount, max_stack, duration, cooldown, proc_chance, quiet )
     buffs_devious_mind = new stat_buff_t(this, "devious_mind", STAT_HASTE_RATING, 240, 1, 4.0, 0.0, set_bonus.tier8_4pc_caster());
@@ -2445,6 +2511,7 @@ std::vector<option_t>& priest_t::get_options()
             // @option_doc loc=player/priest/glyphs title="Glyphs"
             { "glyph_hymn_of_hope",                       OPT_BOOL,   &(glyphs.hymn_of_hope) },
             { "glyph_mind_flay",                          OPT_BOOL,   &(glyphs.mind_flay) },
+            { "glyph_mind_explosion",                     OPT_BOOL,   &(glyphs.mind_explosion) },  // Triumvirate: NEW
             { "glyph_penance",                            OPT_BOOL,   &(glyphs.penance) },
             { "glyph_shadow_word_death",                  OPT_BOOL,   &(glyphs.shadow_word_death) },
             { "glyph_shadow_word_pain",                   OPT_BOOL,   &(glyphs.shadow_word_pain) },
@@ -2596,6 +2663,8 @@ void player_t::priest_init(sim_t* sim)
 
     target_t* t = sim->target;
     t->debuffs.misery = new debuff_t(sim, "misery", 1, 24.0);
+    t->debuffs.shadow_word_pain_vulnerability = new debuff_t(sim, "shadow_word_pain_vulnerability", 1, 30.0);  // Triumvirate: NEW 7/24
+    t->debuffs.holy_fire_vulnerability = new debuff_t(sim, "holy_fire_vulnerability", 1, 30.0);  // Triumvirate: NEW 7/24
 }
 
 // player_t::priest_combat_begin =============================================
@@ -2613,4 +2682,7 @@ void player_t::priest_combat_begin(sim_t* sim)
 
     target_t* t = sim->target;
     if (sim->overrides.misery) t->debuffs.misery->override(1, 3);
+    // Triumvirate: NEW 7/24
+    if (sim->overrides.shadow_word_pain_vulnerability) t->debuffs.shadow_word_pain_vulnerability->override(1);
+    if (sim->overrides.holy_fire_vulnerability) t->debuffs.holy_fire_vulnerability->override(1);
 }

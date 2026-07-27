@@ -3398,7 +3398,7 @@ struct icy_touch_t : public death_knight_spell_t
 struct obliterate_t : public death_knight_attack_t
 {
   obliterate_t( player_t* player, const std::string& options_str  ) :
-      death_knight_attack_t( "obliterate", player, SCHOOL_PHYSICAL, TREE_FROST )
+      death_knight_attack_t( "obliterate", player, SCHOOL_FROSTSTRIKE, TREE_FROST )  // Triumvirate: Froststrike (Physical+Frost), Main Hand only, was Physical (7/24)
   {
     death_knight_t* p = player -> cast_death_knight();
 
@@ -3817,7 +3817,7 @@ struct scourge_strike_t : public death_knight_attack_t
   attack_t* scourge_strike_shadow;
   struct scourge_strike_shadow_t : public death_knight_attack_t
   {
-    scourge_strike_shadow_t( player_t* player ) : death_knight_attack_t( "scourge_strike_shadow", player, SCHOOL_SHADOW, TREE_UNHOLY )
+    scourge_strike_shadow_t( player_t* player ) : death_knight_attack_t( "scourge_strike_shadow", player, SCHOOL_SHADOWFROST, TREE_UNHOLY )  // Triumvirate: Shadowfrost (Shadow+Frost), was pure Shadow (7/24)
     {
       weapon = &( player -> main_hand_weapon );
       may_miss = may_parry = may_dodge = false;
@@ -3845,7 +3845,7 @@ struct scourge_strike_t : public death_knight_attack_t
       death_knight_attack_t::target_debuff( dmg_type );
 
       // FIX ME!! How does 4T8 play with SS in 3.3
-      target_multiplier *= p -> diseases() * 0.12 * ( 1.0 + p -> set_bonus.tier8_4pc_melee() * .2 );
+      target_multiplier *= p -> diseases() * 0.14 * ( 1.0 + p -> set_bonus.tier8_4pc_melee() * .2 );  // Triumvirate: 14% (up from 12%)
     }
   };
   scourge_strike_t( player_t* player, const std::string& options_str  ) :
@@ -3874,7 +3874,7 @@ struct scourge_strike_t : public death_knight_attack_t
 
     scourge_strike_shadow = new scourge_strike_shadow_t( player );
 
-    weapon_multiplier = 0.70;
+    weapon_multiplier = 0.75;  // Triumvirate: 75% (up from 70%)
     cost_frost = 1;
     cost_unholy = 1;
 
@@ -3945,9 +3945,9 @@ struct summon_gargoyle_t : public death_knight_spell_t
     consume_resource();
     update_ready();
     // Examining logs show gargoyls take 4.5-5.5 seconds before they
-    // can begin casting, so rather than the tooltip's 30s duration,
-    // let's use 25s.
-    player -> summon_pet( "gargoyle", 25.0 );
+    // can begin casting, so rather than the tooltip's duration,
+    // we use duration - ~5s. Triumvirate: persists 35s (up from 30s), so 30s effective (was 25s).
+    player -> summon_pet( "gargoyle", 30.0 );
   }
 };
 

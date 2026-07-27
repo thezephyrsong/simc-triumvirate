@@ -1238,6 +1238,13 @@ void sim_t::use_optimal_buffs_and_debuffs( int value )
   overrides.improved_icy_talons    = optimal_raid;
   overrides.improved_moonkin_aura  = optimal_raid;
   overrides.improved_scorch        = optimal_raid;
+  // Triumvirate: NEW 7/24
+  overrides.frostbolt_vulnerability           = optimal_raid;
+  overrides.arcane_barrage_vulnerability       = optimal_raid;
+  overrides.shadow_word_pain_vulnerability     = optimal_raid;
+  overrides.holy_fire_vulnerability            = optimal_raid;
+  overrides.improved_stormstrike_vulnerability = optimal_raid;
+  overrides.call_of_thunder_vulnerability      = optimal_raid;
   overrides.improved_shadow_bolt   = optimal_raid;
   overrides.infected_wounds        = optimal_raid;
   overrides.insect_swarm           = optimal_raid;
@@ -1528,6 +1535,13 @@ std::vector<option_t>& sim_t::get_options()
       { "override.improved_icy_talons",     OPT_BOOL,   &( overrides.improved_icy_talons            ) },
       { "override.improved_moonkin_aura",   OPT_BOOL,   &( overrides.improved_moonkin_aura          ) },
       { "override.improved_scorch",         OPT_BOOL,   &( overrides.improved_scorch                ) },
+      // Triumvirate: NEW 7/24
+      { "override.frostbolt_vulnerability",           OPT_BOOL,   &( overrides.frostbolt_vulnerability           ) },
+      { "override.arcane_barrage_vulnerability",       OPT_BOOL,   &( overrides.arcane_barrage_vulnerability       ) },
+      { "override.shadow_word_pain_vulnerability",     OPT_BOOL,   &( overrides.shadow_word_pain_vulnerability     ) },
+      { "override.holy_fire_vulnerability",            OPT_BOOL,   &( overrides.holy_fire_vulnerability            ) },
+      { "override.improved_stormstrike_vulnerability", OPT_BOOL,   &( overrides.improved_stormstrike_vulnerability ) },
+      { "override.call_of_thunder_vulnerability",      OPT_BOOL,   &( overrides.call_of_thunder_vulnerability      ) },
       { "override.improved_shadow_bolt",    OPT_BOOL,   &( overrides.improved_shadow_bolt           ) },
       { "override.infected_wounds",         OPT_BOOL,   &( overrides.infected_wounds                ) },
       { "override.insect_swarm",            OPT_BOOL,   &( overrides.insect_swarm                   ) },

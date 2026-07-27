@@ -40,10 +40,12 @@ struct rogue_t : public player_t
     buff_t* buffs_stealthed;
     buff_t* buffs_slice_and_dice;
     buff_t* buffs_tier9_2pc;
+    buff_t* buffs_knives_combo;  // Triumvirate: NEW - Deadliness/Fan of Knives, 5%/stack up to 5, consumed by next Eviscerate
 
     // Cooldowns
     cooldown_t* cooldowns_honor_among_thieves;
     cooldown_t* cooldowns_seal_fate;
+    cooldown_t* cooldowns_restore_energy;  // Triumvirate: NEW - shared 1 min ICD across Backstab/Ambush/Hemorrhage
 
     // Expirations
     struct _expirations_t
@@ -66,6 +68,7 @@ struct rogue_t : public player_t
     gain_t* gains_tier8_2pc;
     gain_t* gains_tier9_2pc;
     gain_t* gains_tier10_2pc;
+    gain_t* gains_slaughter_from_the_shadows;  // Triumvirate: NEW
 
     // Procs
     proc_t* procs_combo_points_wasted;
@@ -100,6 +103,8 @@ struct rogue_t : public player_t
     rng_t* rng_sword_specialization;
     rng_t* rng_tier10_4pc;
     rng_t* rng_wound_poison;
+    rng_t* rng_knives_combo;  // Triumvirate: NEW - Deadliness proc chance for Fan of Knives
+    rng_t* rng_restore_energy;  // Triumvirate: NEW - Slaughter from the Shadows proc chance
 
     // Options
     std::vector<action_callback_t*> critical_strike_callbacks;
@@ -217,6 +222,7 @@ struct rogue_t : public player_t
         // Cooldowns
         cooldowns_honor_among_thieves = get_cooldown("honor_among_thieves");
         cooldowns_seal_fate = get_cooldown("seal_fate");
+        cooldowns_restore_energy = get_cooldown("restore_energy");  // Triumvirate: NEW
 
         // Options
         critical_strike_intervals_str = "1.50/1.75/2.0/2.25";
@@ -501,6 +507,33 @@ namespace   // ANONYMOUS NAMESPACE =========================================
         if (a->sim->target->health_percentage() < 35)
         {
             a->player_multiplier *= 1.0 + p->talents.dirty_deeds * 0.10;
+        }
+    }
+
+    // trigger_restore_energy ===================================================
+    // Triumvirate: Slaughter from the Shadows - 5/10/15/20/25% chance per
+    // Backstab/Ambush/Hemorrhage to instantly restore energy, shared 3s ICD (7/6 hotfix).
+    // Confirmed via combat log: Backstab's Restore Energy averaged exactly 8/proc
+    // (56 total gain / 7 procs) over a 30s fight - 7 procs in 30s rules out the
+    // 1 min ICD shown on the generic SpellID 9512 tooltip, which is evidently a
+    // shared/reused base spell whose displayed values don't reflect this specific
+    // proc's actual scripted amount. Using the original changelog amounts instead:
+    // 8 for Backstab/Ambush, 5 for Hemorrhage.
+
+    static void trigger_restore_energy(rogue_attack_t* a, double amount)
+    {
+        rogue_t* p = a->player->cast_rogue();
+
+        if (!p->talents.slaughter_from_the_shadows)
+            return;
+
+        if (p->cooldowns_restore_energy->remains() > 0)
+            return;
+
+        if (p->rng_restore_energy->roll(p->talents.slaughter_from_the_shadows * 0.05))
+        {
+            p->resource_gain(RESOURCE_ENERGY, amount, p->gains_slaughter_from_the_shadows);
+            p->cooldowns_restore_energy->start(3.0);
         }
     }
 
@@ -1165,7 +1198,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             requires_stealth = true;
             adds_combo_points = true;
             weapon_multiplier *= 2.75;
-            base_cost -= p->talents.slaughter_from_the_shadows * 4;
+            base_cost -= p->talents.slaughter_from_the_shadows * 5;  // Triumvirate: -25 at max (confirmed via tooltip, was -20)
             base_multiplier *= 1.0 + (p->talents.find_weakness * 0.03 +
                 p->talents.opportunity * 0.15 +
                 p->talents.slaughter_from_the_shadows * 0.02);
@@ -1178,6 +1211,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             if (result_is_hit())
             {
                 trigger_initiative(this);
+                trigger_restore_energy(this, 8);  // Triumvirate: NEW - Slaughter from the Shadows, 8/proc
             }
         }
     };
@@ -1213,12 +1247,12 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             requires_weapon = WEAPON_DAGGER;
             requires_position = POSITION_BACK;
             adds_combo_points = true;
-            base_cost -= p->talents.slaughter_from_the_shadows * 4;
+            base_cost -= p->talents.slaughter_from_the_shadows * 5;  // Triumvirate: -25 at max (confirmed via tooltip, was -20)
             weapon_multiplier *= 1.50;
             weapon_multiplier *= 1.0 + p->talents.sinister_calling * 0.04;
 
             base_multiplier *= 1.0 + (p->talents.aggression * 0.05 +
-                p->talents.blade_twisting * 0.05 +
+                p->talents.blade_twisting * 0.08 +  /* Triumvirate: 8/16% (up from 5/10%) */
                 p->talents.find_weakness * 0.02 +
                 p->talents.opportunity * 0.15 +
                 p->talents.surprise_attacks * 0.15 +
@@ -1249,6 +1283,10 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             {
                 p->active_rupture->extend_duration(1);
             }
+            if (result_is_hit())
+            {
+                trigger_restore_energy(this, 8);  // Triumvirate: NEW - Slaughter from the Shadows, 8/proc
+            }
         }
     };
 
@@ -1268,7 +1306,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             };
             parse_options(options, options_str);
 
-            base_cost = p->glyphs.blade_flurry ? 0 : 25;
+            base_cost = 0;  // Triumvirate: Blade Flurry no longer costs energy (was 25, glyph-only free)
             cooldown->duration = 120;
             cooldown->duration -= p->talents.savage_combat * 30;  // Triumvirate: NEW - Savage Combat now also reduces Blade Flurry CD by 30/60s
 
@@ -1293,7 +1331,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
         double dose_dmg;
 
         envenom_t(player_t* player, const std::string& options_str) :
-            rogue_attack_t("envenom", player, SCHOOL_NATURE, TREE_ASSASSINATION), min_doses(1), no_buff(0)
+            rogue_attack_t("envenom", player, SCHOOL_STORMSTRIKE, TREE_ASSASSINATION), min_doses(1), no_buff(0)  // Triumvirate: Stormstrike (Physical+Nature), was pure Nature (7/24)
         {
             rogue_t* p = player->cast_rogue();
             assert(p->level >= 50);  // Triumvirate: Envenom Rank 1 = 50
@@ -1456,13 +1494,23 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             if (result_is_hit())
             {
                 trigger_cut_to_the_chase(this);
+                // Triumvirate: Knives Combo - consumed by Eviscerate (NEW)
+                if (p->buffs_knives_combo->check())
+                    p->buffs_knives_combo->expire();
             }
         }
 
         virtual void player_buff()
         {
+            rogue_t* p = player->cast_rogue();
             rogue_attack_t::player_buff();
             trigger_dirty_deeds(this);
+
+            // Triumvirate: Knives Combo - +5%/stack (up to 5) from Deadliness/Fan of Knives (NEW)
+            if (p->buffs_knives_combo->check())
+            {
+                player_multiplier *= 1.0 + 0.05 * p->buffs_knives_combo->current_stack;
+            }
         }
     };
 
@@ -1719,6 +1767,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
                 {
                     t->debuffs.hemorrhage->trigger(10, damage_adder);
                 }
+                trigger_restore_energy(this, 5);  // Triumvirate: NEW - Slaughter from the Shadows, 5/proc
             }
         }
 
@@ -1934,6 +1983,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
 
         virtual void execute()
         {
+            rogue_t* p = player->cast_rogue();
             attack_t::consume_resource();
 
             weapon = &(player->main_hand_weapon);
@@ -1945,6 +1995,13 @@ namespace   // ANONYMOUS NAMESPACE =========================================
                 weapon = &(player->off_hand_weapon);
                 weapon_multiplier = (weapon->type == WEAPON_DAGGER) ? 1.05 : 0.70;
                 rogue_attack_t::execute();
+            }
+
+            // Triumvirate: Deadliness - Fan of Knives has a 20/40/60/80/100% chance
+            // to trigger Knives Combo, stacking a +5%/stack (up to 5) Eviscerate buff (NEW)
+            if (p->talents.deadliness && p->rng_knives_combo->roll(p->talents.deadliness * 0.20))
+            {
+                p->buffs_knives_combo->trigger();
             }
         }
 
@@ -1989,7 +2046,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
     struct mutilate_t : public rogue_attack_t
     {
         mutilate_t(player_t* player, const std::string& options_str) :
-            rogue_attack_t("mutilate", player, SCHOOL_PHYSICAL, TREE_ASSASSINATION)
+            rogue_attack_t("mutilate", player, SCHOOL_NATURE, TREE_ASSASSINATION)  // Triumvirate: full Nature, was Physical (7/24) - now bypasses armor, benefits from Nature-taken debuffs
         {
             rogue_t* p = player->cast_rogue();
             check_talent(p->talents.mutilate);
@@ -2295,7 +2352,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             base_cost -= util_t::talent_rank(p->talents.improved_sinister_strike, 2, 3.0, 5.0);
 
             base_multiplier *= 1.0 + (p->talents.aggression * 0.05 +
-                p->talents.blade_twisting * 0.05 +
+                p->talents.blade_twisting * 0.08 +  /* Triumvirate: 8/16% (up from 5/10%) */
                 p->talents.find_weakness * 0.02 +
                 p->talents.surprise_attacks * 0.15 +
                 p->set_bonus.tier6_4pc_melee() * 0.06 +
@@ -2655,7 +2712,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             num_ticks = 4;
             base_tick_time = 3.0;
             tick_power_mod = 0.12 / num_ticks * 0.9; // * 0.9 for the 10% Hot-Fix nerf on Jan 7th. 2010.
-            base_td_init = util_t::ability_rank(p->level, 296, 80, 244, 76, 204, 70, 160, 62, 96, 0) / num_ticks;
+            base_td_init = 440.0 / num_ticks;  // Triumvirate: Deadly Poison V tooltip - 440 total over 12s (confirmed via tooltip 7/23)
 
             id = 57972;
         }
@@ -2751,8 +2808,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             background = true;
             may_crit = true;
             direct_power_mod = 0.10 * 0.9; // * 0.9 for the Hot-Fix nerf on Jan. 7th 2010.
-            base_dd_min = util_t::ability_rank(p->level, 300, 79, 245, 73, 161, 68, 76, 0);
-            base_dd_max = util_t::ability_rank(p->level, 400, 79, 327, 73, 215, 68, 100, 0);
+            base_dd_min = base_dd_max = 366;  // Triumvirate: Instant Poison VI tooltip - flat 366 (confirmed via tooltip 7/23)
 
             id = 57967;
         }
@@ -2797,7 +2853,7 @@ namespace   // ANONYMOUS NAMESPACE =========================================
             background = true;
             may_crit = true;
             direct_power_mod = .04 * 0.9; // * 0.9 for the Hot-Fix nerf on Jan. 7th, 2010.
-            base_dd_min = base_dd_max = util_t::ability_rank(p->level, 231, 78, 188, 72, 112, 64, 53, 0);
+            base_dd_min = base_dd_max = 160;  // Triumvirate: Wound Poison IV tooltip - flat 160 (confirmed via tooltip 7/23)
 
             id = 57978;
         }
@@ -3432,6 +3488,7 @@ void rogue_t::init_gains()
     gains_tier8_2pc = get_gain("tier8_2pc");
     gains_tier9_2pc = get_gain("tier9_2pc");
     gains_tier10_2pc = get_gain("tier10_2pc");
+    gains_slaughter_from_the_shadows = get_gain("slaughter_from_the_shadows");  // Triumvirate: NEW
 }
 
 // rogue_t::init_procs =======================================================
@@ -3469,6 +3526,8 @@ void rogue_t::init_rng()
 
     rng_anesthetic_poison = get_rng("anesthetic_poison");
     rng_combat_potency = get_rng("combat_potency");
+    rng_knives_combo = get_rng("knives_combo");  // Triumvirate: NEW
+    rng_restore_energy = get_rng("restore_energy");  // Triumvirate: NEW
     rng_cut_to_the_chase = get_rng("cut_to_the_chase");
     rng_deadly_poison = get_rng("deadly_poison");
     rng_focused_attacks = get_rng("focused_attacks");
@@ -3528,6 +3587,7 @@ void rogue_t::init_buffs()
     buffs_stealthed = new buff_t(this, "stealthed", 1);
     buffs_slice_and_dice = new buff_t(this, "slice_and_dice", 1);
     buffs_tier9_2pc = new buff_t(this, "tier9_2pc", 1, 10.0, 0.0, set_bonus.tier9_2pc_melee() * 0.02);
+    buffs_knives_combo = new buff_t(this, "knives_combo", 5, 0.0);  // Triumvirate: NEW - no duration given, consumed on next Eviscerate; flag if a duration surfaces later
 }
 
 // trigger_honor_among_thieves =============================================

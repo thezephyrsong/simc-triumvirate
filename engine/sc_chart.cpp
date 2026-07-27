@@ -55,6 +55,12 @@ static const char* school_color( int type )
   case SCHOOL_NATURE:    return class_color( HUNTER );
   case SCHOOL_PHYSICAL:  return class_color( WARRIOR );
   case SCHOOL_SHADOW:    return class_color( WARLOCK );
+  // Triumvirate: NEW compound schools, 7/24 - colored after whichever base school leads the name
+  case SCHOOL_SHADOWFROST: return class_color( SHAMAN );
+  case SCHOOL_FROSTSTRIKE: return class_color( SHAMAN );
+  case SCHOOL_HOLYSTRIKE:  return class_color( PRIEST );
+  case SCHOOL_STORMSTRIKE: return class_color( HUNTER );
+  case SCHOOL_VOLCANIC:    return class_color( DEATH_KNIGHT );
   default: assert( 0 );
   }
   return 0;

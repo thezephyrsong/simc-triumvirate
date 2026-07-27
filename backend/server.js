@@ -101,6 +101,10 @@ const VALID_BUFF_KEYS = new Set([
   "swift_retribution", "thunder_clap", "totem_of_wrath", "trauma",
   "trueshot_aura", "unleashed_rage", "windfury_totem", "winters_chill",
   "wrath_of_air",
+  // Triumvirate: NEW 7/24 - cross-class "damage taken" debuffs
+  "frostbolt_vulnerability", "arcane_barrage_vulnerability",
+  "shadow_word_pain_vulnerability", "holy_fire_vulnerability",
+  "improved_stormstrike_vulnerability", "call_of_thunder_vulnerability",
 ]);
 
 // Parse simc stdout for DPS and scale factors.
